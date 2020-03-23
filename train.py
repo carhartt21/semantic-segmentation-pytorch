@@ -8,6 +8,8 @@ from distutils.version import LooseVersion
 # Numerical libs
 import torch
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
+
 # Our libs
 from config import cfg
 from dataset import TrainDataset
@@ -22,7 +24,6 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
     data_time = AverageMeter()
     ave_total_loss = AverageMeter()
     ave_acc = AverageMeter()
-
     segmentation_module.train(not cfg.TRAIN.fix_bn)
 
     # main loop
@@ -140,6 +141,9 @@ def adjust_learning_rate(optimizers, cur_iter, cfg):
 
 
 def main(cfg, gpus):
+    torch.backends.cudnn.enabled = False
+    # cudnn.deterministic = False
+    # cudnn.enabled = True
     # Network Builders
     net_encoder = ModelBuilder.build_encoder(
         arch=cfg.MODEL.arch_encoder.lower(),
@@ -151,7 +155,8 @@ def main(cfg, gpus):
         num_class=cfg.DATASET.num_class,
         weights=cfg.MODEL.weights_decoder)
 
-    crit = nn.NLLLoss(ignore_index=-1)
+    # crit = nn.NLLLoss(ignore_index=-1)
+    crit = nn.CrossEntropyLoss(ignore_index=-1)
 
     if cfg.MODEL.arch_decoder.endswith('deepsup'):
         segmentation_module = SegmentationModule(
@@ -224,6 +229,7 @@ if __name__ == '__main__':
         default="0-3",
         help="gpus to use, e.g. 0-3 or 0,1,2,3"
     )
+
     parser.add_argument(
         "opts",
         help="Modify config options using the command-line",

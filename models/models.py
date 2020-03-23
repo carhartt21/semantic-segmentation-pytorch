@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torchvision
-from . import resnet, resnext, mobilenet, hrnet
-from lib.nn import SynchronizedBatchNorm2d
-BatchNorm2d = SynchronizedBatchNorm2d
+from . import resnet, resnext, mobilenet, hrnet, ocr
+# from lib.nn import SynchronizedBatchNorm2d, BatchNorm2d
+BatchNorm2d = torch.nn.BatchNorm2d
 
 
 class SegmentationModuleBase(nn.Module):
@@ -29,12 +29,19 @@ class SegmentationModule(SegmentationModuleBase):
 
     def forward(self, feed_dict, *, segSize=None):
         # training
+        if type(feed_dict) is list:
+            feed_dict = feed_dict[0]
+            # also, convert to torch.cuda.FloatTensor
+            if torch.cuda.is_available():
+                feed_dict['img_data'] = feed_dict['img_data'].cuda()
+                feed_dict['seg_label'] = feed_dict['seg_label'].cuda()
+            else:
+                raise RunTimeError('Cannot convert torch.Floattensor into torch.cuda.FloatTensor')
         if segSize is None:
-            if self.deep_sup_scale is not None: # use deep supervision technique
+            if self.deep_sup_scale is not None:  # use deep supervision technique
                 (pred, pred_deepsup) = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True))
             else:
                 pred = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True))
-
             loss = self.crit(pred, feed_dict['seg_label'])
             if self.deep_sup_scale is not None:
                 loss_deepsup = self.crit(pred_deepsup, feed_dict['seg_label'])
@@ -98,12 +105,12 @@ class ModelBuilder:
             orig_resnext = resnext.__dict__['resnext101'](pretrained=pretrained)
             net_encoder = Resnet(orig_resnext) # we can still use class Resnet
         elif arch == 'hrnetv2':
-            net_encoder = hrnet.__dict__['hrnetv2'](pretrained=pretrained)
+            net_encoder = hrnet.__dict__['hrnetv2'](pretrained=False)
         else:
             raise Exception('Architecture undefined!')
 
         # encoders are usually pretrained
-        # net_encoder.apply(ModelBuilder.weights_init)
+        net_encoder.apply(ModelBuilder.weights_init)
         if len(weights) > 0:
             print('Loading weights for net_encoder')
             net_encoder.load_state_dict(
@@ -147,6 +154,12 @@ class ModelBuilder:
                 fc_dim=fc_dim,
                 use_softmax=use_softmax,
                 fpn_dim=512)
+        elif arch == 'ocr':
+            net_decoder = OCR(
+                num_class=num_class,
+                fc_dim=fc_dim,
+                use_softmax=use_softmax)
+
         else:
             raise Exception('Architecture undefined!')
 
@@ -358,6 +371,68 @@ class C1DeepSup(nn.Module):
         _ = nn.functional.log_softmax(_, dim=1)
 
         return (x, _)
+
+
+# OCR
+class OCR(nn.Module):
+    def __init__(self, num_class=150, fc_dim=2048, use_softmax=False):
+        super(OCR, self).__init__()
+        OCR_params = {
+            'MID_CHANNELS': 512,
+            'KEY_CHANNELS': 256,
+            'DROPOUT': 0.05,
+            'SCALE': 1
+            }
+        self.use_softmax = use_softmax
+        ocr_mid_channels = OCR_params['MID_CHANNELS']
+        ocr_key_channels = OCR_params['KEY_CHANNELS']
+
+        self.conv3x3_ocr = nn.Sequential(
+            nn.Conv2d(fc_dim, ocr_mid_channels,
+                      kernel_size=3, stride=1, padding=1),
+            BatchNorm2d(ocr_mid_channels),
+            nn.ReLU(inplace=True)
+            )
+        self.ocr_gather_head = ocr.SpatialGather_Module(num_class)
+
+        self.ocr_distri_head = ocr.SpatialOCR_Module(in_channels=ocr_mid_channels,
+                                                 key_channels=ocr_key_channels,
+                                                 out_channels=ocr_mid_channels,
+                                                 scale=1,
+                                                 dropout=0.05)
+        self.cls_head = nn.Conv2d(
+            ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
+
+        self.aux_head = nn.Sequential(
+            nn.Conv2d(fc_dim, fc_dim // 4,
+                      kernel_size=1, stride=1, padding=0),
+            BatchNorm2d(fc_dim // 4),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True)
+        )
+
+    def forward(self, conv_out, segSize=None):
+        out_aux_seg = []
+        feats = conv_out[-1]
+        if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
+            feats = nn.functional.interpolate(
+                feats, size=segSize, mode='bilinear', align_corners=False)
+        if self.use_softmax:  # is True during inference
+            feats = nn.functional.softmax(feats, dim=1)
+        else:
+            feats = nn.functional.log_softmax(feats, dim=1)
+        # ocr
+        out_aux = self.aux_head(feats)
+        # compute contrast feature
+        feats = self.conv3x3_ocr(feats)
+
+        context = self.ocr_gather_head(feats, out_aux)
+        feats = self.ocr_distri_head(feats, context)
+
+        out = self.cls_head(feats)
+        # out_aux_seg.append(out_aux)
+        # out_aux_seg.append(out)
+        return out
 
 
 # last conv

@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from scipy.io import loadmat
 import csv
+from matplotlib import pyplot as plt
 # Our libs
 from dataset import TestDataset
 from models import ModelBuilder, SegmentationModule
@@ -29,7 +30,7 @@ with open('data/object150_info.csv') as f:
 
 def visualize_result(data, pred, cfg):
     (img, info) = data
-
+    show_result = False
     # print predictions in descending order
     pred = np.int32(pred)
     pixs = pred.size
@@ -49,8 +50,10 @@ def visualize_result(data, pred, cfg):
 
     img_name = info.split('/')[-1]
     Image.fromarray(im_vis).save(
-        os.path.join(cfg.TEST.result, img_name.replace('.jpg', '.png')))
-
+        os.path.join(cfg.TEST.result, '{}_{}{}.png'.format(img_name[:-4], cfg.MODEL.arch_encoder, cfg.MODEL.arch_decoder)))
+    if show_result:
+        plt.imshow(Image.fromarray(im_vis))
+        plt.show()
 
 def test(segmentation_module, loader, gpu):
     segmentation_module.eval()
@@ -77,9 +80,9 @@ def test(segmentation_module, loader, gpu):
                 # forward pass
                 pred_tmp = segmentation_module(feed_dict, segSize=segSize)
                 scores = scores + pred_tmp / len(cfg.DATASET.imgSizes)
-
             _, pred = torch.max(scores, dim=1)
             pred = as_numpy(pred.squeeze(0).cpu())
+            print(pred)
 
         # visualization
         visualize_result(
@@ -106,7 +109,8 @@ def main(cfg, gpu):
         weights=cfg.MODEL.weights_decoder,
         use_softmax=True)
 
-    crit = nn.NLLLoss(ignore_index=-1)
+    # crit = nn.NLLLoss(ignore_index=-1)
+    crit = nn.CrossEntropyLoss(ignore_index=-1)
 
     segmentation_module = SegmentationModule(net_encoder, net_decoder, crit)
 
@@ -185,8 +189,9 @@ if __name__ == '__main__':
         os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exitst!"
 
     # generate testing image list
-    if os.path.isdir(args.imgs[0]):
-        imgs = find_recursive(args.imgs[0])
+    if os.path.isdir(args.imgs):
+        print(args.imgs)
+        imgs = find_recursive(args.imgs)
     else:
         imgs = [args.imgs]
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
