@@ -41,4 +41,4 @@ if __name__ == '__main__':
         imgs = [args.imgs]
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
     if not os.path.isdir(args.output):
-        os.makedirs(cfg.TEST.result)
+        os.makedirs(args.)
