@@ -50,8 +50,8 @@ if __name__ == '__main__':
         os.makedirs(args.output)
     for img in imgs:
         imgData = imageio.imread(img)
-        grayImage = np.zeros(imgData.shape)
-        pbar = tqdm(total=imgData.shape[0]*imgData.shape[1], desc=img)
+        grayImage = np.zeros(imgData.shape,dtype='uint8')
+        pbar = tqdm(total=imgData.shape[0]*imgData.shape[1], desc=img, ascii=true)
         for x in range(0,imgData.shape[0]):
             for y in range(0,imgData.shape[1]):
                 newClass = -1
