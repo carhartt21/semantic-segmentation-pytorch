@@ -1,14 +1,17 @@
-from matplotlib import pyplot as plt
+import imageio
+import numpy as np
 import argparse
 import os
 import json
+import progressbar
+import time
 from pathlib import Path
 from utils import colorEncode, find_recursive
 
 inputDir=''
 outputDir=''
 colorMappingFile=Path('data/colorsMapillary.json')
-nameMappingFile=Path('data/mappingMappilary.json')
+nameMappingFile=Path('data/mappingMapillary.json')
 
 with open(nameMappingFile) as mfile:
     mapNames = json.load(mfile)
@@ -32,30 +35,31 @@ if __name__ == '__main__':
         type=str,
         help="an path for output files"
     )
+    args = parser.parse_args()
+
     # generate image list
     if os.path.isdir(args.input):
         print(args.imgs)
-        imgs = find_recursive(args.imgs)
+        imgs = find_recursive(args.input)
     else:
-        imgs = [args.imgs]
+        imgs = [args.input]
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
-
     for img in imgs:
-        imgData = plt.imread(img,'uint8')
+        print('{}')
+        imgData = imageio.imread(img)
         grayImage = np.zeros(imgData.shape)
-        for x in range(0,imgData.shape[0])
+        for x in range(0,imgData.shape[0]):
             for y in range(0,imgData.shape[1]):
+                newClass = -1
                 try:
                     oldClass = list(mapColors.values()).index(list(imgData[0][0][:-1]))
                 except ValueError:
                     print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
                 try:
-                    newClass = list(mapNames.values()).index(oldClass)
+                    newClass = mapNames[str(oldClass)]
                 except ValueError:
-                    print('Exception: no mapping for class'.format(oldClass))
+                    print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
                 grayImage[x][y] = newClass
-    plt.imshow(grayImage)
-    plt.show()
-    json.load()
+        imageio.imwrite('{}/{}'.format(args.output, img))
