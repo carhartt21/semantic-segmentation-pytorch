@@ -7,6 +7,8 @@ import progressbar
 import time
 from pathlib import Path
 from utils import colorEncode, find_recursive
+from tqdm import tqdm
+
 
 inputDir=''
 outputDir=''
@@ -50,6 +52,7 @@ if __name__ == '__main__':
         print('{}')
         imgData = imageio.imread(img)
         grayImage = np.zeros(imgData.shape)
+        pbar = tqdm(total=imgData.shape[0]*imgData.shape[0], desc=img)
         for x in range(0,imgData.shape[0]):
             for y in range(0,imgData.shape[1]):
                 newClass = -1
@@ -62,4 +65,5 @@ if __name__ == '__main__':
                 except ValueError:
                     print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
                 grayImage[x][y] = newClass
+                pbar.update(1)
         imageio.imwrite('{}/{}'.format(args.output, img))
