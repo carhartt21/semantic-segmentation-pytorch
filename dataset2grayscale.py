@@ -60,7 +60,7 @@ def remapImage(img, output):
 #                print('[{}, {}] : {}->{}'.format(x, y, oldClass, newClass))
             #pbar.update(1)
     imageio.imwrite('{}{}'.format(output, img.split('/')[-1]), grayImage)
-
+    print('Finished image {}'.format(img.split('/')[-1])))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -89,6 +89,7 @@ if __name__ == '__main__':
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
+    pbar = tqdm(total=len(imgs), desc='Mapping images', ascii=True)
     pool = mp.Pool(mp.cpu_count())
     pool.starmap(remapImage(),[(img,args.output) for img in imgs])
     pool.close()
