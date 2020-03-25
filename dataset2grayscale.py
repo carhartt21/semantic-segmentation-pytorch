@@ -29,13 +29,13 @@ if __name__ == '__main__':
         "--input",
         required=True,
         type=str,
-        help="an image path, or a directory name"
+        help="Image path, or a directory name"
     )
     parser.add_argument(
         "--output",
         required=True,
         type=str,
-        help="an path for output files"
+        help="Path for output files"
     )
     args = parser.parse_args()
 
@@ -66,4 +66,4 @@ if __name__ == '__main__':
                     print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
                 grayImage[x][y] = newClass
                 pbar.update(1)
-        imageio.imwrite('{}/{}'.format(args.output, img))
+        imageio.imwrite('{}{}'.format(args.output, img.split('/')[-1]), grayImage)
