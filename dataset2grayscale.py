@@ -3,8 +3,9 @@ import numpy as np
 import argparse
 import os
 import json
-import progressbar
+import multiprocessing as mp
 import time
+
 from pathlib import Path
 from utils import colorEncode, find_recursive
 from tqdm import tqdm
@@ -88,5 +89,8 @@ if __name__ == '__main__':
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
-    for img in imgs:
-        remapImage(img, output=args.output)
+    pool = mp.Pool(mp.cpu_count())
+    pool.starmap(remapImage(),[(img,args.output) for img in imgs])
+    pool.close()
+    # for img in imgs:
+    #     remapImage(img, output=args.output)
