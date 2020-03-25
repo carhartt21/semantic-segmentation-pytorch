@@ -41,8 +41,8 @@ if __name__ == '__main__':
 
     # generate image list
     if os.path.isdir(args.input):
-        print(args.imgs)
-        imgs = find_recursive(args.input)
+        print(args.input)
+        imgs = find_recursive(args.input, ext='.png')
     else:
         imgs = [args.input]
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
@@ -50,8 +50,8 @@ if __name__ == '__main__':
         os.makedirs(args.output)
     for img in imgs:
         imgData = imageio.imread(img)
-        grayImage = np.zeros(imgData.shape,dtype='uint8')
-        pbar = tqdm(total=imgData.shape[0]*imgData.shape[1], desc=img, ascii=true)
+        grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
+        pbar = tqdm(total=imgData.shape[0]*imgData.shape[1], desc=img, ascii=True)
         for x in range(0,imgData.shape[0]):
             for y in range(0,imgData.shape[1]):
                 newClass = -1
