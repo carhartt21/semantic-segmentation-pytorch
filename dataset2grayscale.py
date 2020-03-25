@@ -49,15 +49,14 @@ if __name__ == '__main__':
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
     for img in imgs:
-        print('{}')
         imgData = imageio.imread(img)
         grayImage = np.zeros(imgData.shape)
-        pbar = tqdm(total=imgData.shape[0]*imgData.shape[0], desc=img)
+        pbar = tqdm(total=imgData.shape[0]*imgData.shape[1], desc=img)
         for x in range(0,imgData.shape[0]):
             for y in range(0,imgData.shape[1]):
                 newClass = -1
                 try:
-                    oldClass = list(mapColors.values()).index(list(imgData[0][0][:-1]))
+                    oldClass = list(mapColors.values()).index(list(imgData[x][y][:-1]))
                 except ValueError:
                     print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
                 try:
@@ -65,5 +64,7 @@ if __name__ == '__main__':
                 except ValueError:
                     print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
                 grayImage[x][y] = newClass
+#                print('[{}, {}] : {}->{}'.format(x, y, oldClass, newClass))
                 pbar.update(1)
+        print(grayImage)
         imageio.imwrite('{}{}'.format(args.output, img.split('/')[-1]), grayImage)
