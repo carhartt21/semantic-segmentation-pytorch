@@ -61,14 +61,14 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--output",
-        required=True,
+        required=False,
         type=str,
         help="Path for output files",
         default='output/'
     )
     parser.add_argument(
         "--dataset",
-        required=True,
+        required=False,
         type=str,
         help="Dataset type",
         default='mapillary'
