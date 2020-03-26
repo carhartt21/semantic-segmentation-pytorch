@@ -34,7 +34,7 @@ def remapImage(img):
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
     imgName = img.split('/')[-1]
     os.path
-    if os.path.isfile(''.join(output, imgName)):
+    if os.path.isfile(''.join((output, imgName))):
         print('test')
         return
     for x in range(0,imgData.shape[0]):
