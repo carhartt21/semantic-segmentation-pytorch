@@ -66,8 +66,14 @@ if __name__ == '__main__':
         help="Path for output files",
         default='output/'
     )
+    parser.add_argument(
+        "--dataset",
+        required=True,
+        type=str,
+        help="Dataset type",
+        default='mapillary'
+    )
     args = parser.parse_args()
-
     # generate image list
     if os.path.isdir(args.input):
         print(args.input)
@@ -77,10 +83,7 @@ if __name__ == '__main__':
     assert len(imgs), "imgs should be a path to image (.jpg) or directory."
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
- #   pbar = tqdm(total=len(imgs), desc='Mapping images', ascii=True)
     pool = mp.Pool(mp.cpu_count())
     for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=10), total=len(imgs), desc='Mapping images', ascii=True):
        pass
     pool.close()
-    # for img in imgs:
-    #     remapImage(img, output=args.output)
