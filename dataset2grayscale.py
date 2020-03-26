@@ -28,14 +28,12 @@ def remapImage(img):
         Image data with semantic segmentation.
 
     """
-    output=Path('/media/chge7185/HDD1/datasets/mapillary/new_labels/')
-#    output=Path('/mnt/Data/chge7185/datasets/')
+#    output=Path('/media/chge7185/HDD1/datasets/mapillary/new_labels/')
+    output=Path('/mnt/Data/chge7185/datasets/new_labels/')
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
     imgName = img.split('/')[-1]
-    os.path
-    if os.path.isfile(''.join((output, imgName))):
-        print('test')
+    if os.path.isfile('{}/{}'.format(output, imgName)):
         return
     for x in range(0,imgData.shape[0]):
         for y in range(0,imgData.shape[1]):
@@ -47,7 +45,7 @@ def remapImage(img):
                 grayImage[x][y] = mapNames[str(oldClass)]
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
-    imageio.imwrite('{}{}'.format(output, img.split('/')[-1]), grayImage)
+    imageio.imwrite('{}/{}'.format(output, img.split('/')[-1]), grayImage)
     return
 
 if __name__ == '__main__':
