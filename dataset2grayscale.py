@@ -11,15 +11,13 @@ from utils import colorEncode, find_recursive
 from tqdm import tqdm
 
 
-inputDir=''
-outputDir=''
 colorMappingFile=Path('data/colorsMapillary.json')
 nameMappingFile=Path('data/mappingMapillary.json')
 
 with open(nameMappingFile) as mfile:
     mapNames = json.load(mfile)
 with open(colorMappingFile) as mfile:
-    mapColors = json.load(mfile)
+    mapColors = list(json.load(mfile).values())
 
 def remapImage(img):
     """Maps an image to grayscale image with new classes according to the maps.
@@ -28,38 +26,28 @@ def remapImage(img):
     ----------
     img : np.array (m,n,o)
         Image data with semantic segmentation.
-    mapColors : dict
-        Maps color(RGB) to class of the input image.
-    mapNames : dict
-        Maps old class names to the new ones.
-    output: string
-        Output folder
-
-    Returns
-    -------
-    type np.array (m,n,1)
-        Grayscale image with semantic segmentation.
 
     """
     output=Path('/media/chge7185/HDD1/datasets/mapillary/new_labels/')
+#    output=Path('/mnt/Data/chge7185/datasets/')
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
-    #pbar = tqdm(total=imgData.shape[0]*imgData.shape[1], desc=img, ascii=True)
+    imgName = img.split('/')[-1]
+    if os.isfile(join(output, imgName)):
+        print('test')
+        return
     for x in range(0,imgData.shape[0]):
         for y in range(0,imgData.shape[1]):
-            newClass = -1
             try:
-                oldClass = list(mapColors.values()).index(list(imgData[x][y][:-1]))
+                oldClass = mapColors.index(list(imgData[x][y][:-1]))
             except ValueError:
                 print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
             try:
-                newClass = mapNames[str(oldClass)]
+                grayImage[x][y] = mapNames[str(oldClass)]
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
-            grayImage[x][y] = newClass
-#                print('[{}, {}] : {}->{}'.format(x, y, oldClass, newClass))
     imageio.imwrite('{}{}'.format(output, img.split('/')[-1]), grayImage)
-#    print('Finished image {}'.format(img.split('/')[-1]))
+    return
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -75,7 +63,8 @@ if __name__ == '__main__':
         "--output",
         required=True,
         type=str,
-        help="Path for output files"
+        help="Path for output files",
+        default='output/'
     )
     args = parser.parse_args()
 
@@ -90,7 +79,7 @@ if __name__ == '__main__':
         os.makedirs(args.output)
  #   pbar = tqdm(total=len(imgs), desc='Mapping images', ascii=True)
     pool = mp.Pool(mp.cpu_count())
-    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs]), total=len(imgs), desc='Mapping images', ascii=True):
+    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=10), total=len(imgs), desc='Mapping images', ascii=True):
        pass
     pool.close()
     # for img in imgs:
