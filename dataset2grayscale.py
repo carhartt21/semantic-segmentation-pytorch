@@ -10,6 +10,35 @@ from pathlib import Path
 #internal libraries
 from utils import colorEncode, find_recursive
 
+def remapImageMat(img):
+    """Maps an image to a grayscale image according to the maps and saves the result.
+
+    Parameters
+    ----------
+    img : np.array (m,n,o)
+        Image data with semantic segmentation.
+
+    """
+    # Read image
+    imgData = imageio.imread(img)
+    grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
+    imgName = img.split('/')[-1]
+    # Check if file exists already in the output path
+    if os.path.isfile('{}/{}'.format(args.output, imgName)):
+        return
+    uniqueRGB = np.unique((np.delete(imgData,3,2).reshape(-1,3)), axis=0)
+    for RGB in uniqueRGB:
+        if args.dataset == 'mapillary':
+            try:
+                oldClass = mapColors.index(list(imgData[x][y][:-1]))
+            except ValueError:
+                print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
+        elif args.dataset == 'ADE20K':
+            oldClass = imgData[x][y]
+        grayImage += (img3 == rgb[0]).all(axis=2) * np.tile(mapNames[oldClass], (imgData.shape[0], imgData.shape[1], 1))
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
+    return
+
 
 def remapImage(img):
     """Maps an image to a grayscale image according to the maps and saves the result.
@@ -112,9 +141,10 @@ if __name__ == '__main__':
         print('Creating empty output directory {}'.format(output))
         os.makedirs(args.output)
     # Create worker pool
-    pool = mp.Pool(args.nproc)
-    # Assign tasks to workers
-    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
-       pass
-    # Close pool
-    pool.close()
+    remapImageMat(img)
+    # pool = mp.Pool(args.nproc)
+    # # Assign tasks to workers
+    # for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
+    #    pass
+    # # Close pool
+    # pool.close()
