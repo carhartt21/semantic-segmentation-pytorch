@@ -20,6 +20,7 @@ def remapImage(img):
         Image data with semantic segmentation.
 
     """
+    global args 
     # Read image
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
@@ -33,6 +34,7 @@ def remapImage(img):
             # Determine old class
             if args.dataset == 'mapillary':
                 try:
+                    global mapColors
                     oldClass = mapColors.index(list(imgData[x][y][:-1]))
                 except ValueError:
                     print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
@@ -40,6 +42,7 @@ def remapImage(img):
                 oldClass = imgData[x][y]
             # Map to new class
             try:
+                global mapNames
                 grayImage[x][y] = mapNames[str(oldClass)]
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
@@ -80,12 +83,22 @@ if __name__ == '__main__':
         default=mp.cpu_count()
     )
     # Read args
-    global args = parser.parse_args()
+    global args
+    args = parser.parse_args()
     if args.dataset == 'mapillary':
-        global colorMappingFile = Path('data/colorsMapillary.json')
-        global nameMappingFile = Path('data/mappingMapillary.json')
+        global mapColors
+        global mapNames
+        colorMappingFile = Path('data/colorsMapillary.json')
+        nameMappingFile = Path('data/mappingMapillary.json')
+        with open(colorMappingFile) as mfile:
+            mapColors = json.load(mfile)
+        with open(nameMappingFile) as mfile:
+            mapNames = json.load(mfile)
     else if args.dataset == 'ADE20K':
-        global nameMappingFile = Path('data/mappingADE.json')
+        global mapNames
+        nameMappingFile = Path('data/mappingADE.json')
+        with open(nameMappingFile) as mfile:
+            mapNames = json.loads(mfile)
     else:
         print('Exception: Dataset type {} unknown'.format(dataset))
         return
