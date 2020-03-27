@@ -20,7 +20,6 @@ def remapImage(img):
         Image data with semantic segmentation.
 
     """
-    global args
     # Read image
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
@@ -34,7 +33,6 @@ def remapImage(img):
             # Determine old class
             if args.dataset == 'mapillary':
                 try:
-                    global mapColors
                     oldClass = mapColors.index(list(imgData[x][y][:-1]))
                 except ValueError:
                     print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
@@ -42,7 +40,6 @@ def remapImage(img):
                 oldClass = imgData[x][y]
             # Map to new class
             try:
-                global mapNames
                 grayImage[x][y] = mapNames[str(oldClass)]
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
@@ -78,19 +75,23 @@ if __name__ == '__main__':
         "--nproc",
         required=False,
         type=int,
-        help="Dataset type",
+        help="Number of parralel processes",
+        default=mp.cpu_count()
+    )
+    parser.add_argument(
+        "--chunk",
+        required=False,
+        type=int,
+        help="Chunk size for each worker thread",
         default=mp.cpu_count()
     )
     # Read args
-    global args
-    global mapNames
     args = parser.parse_args()
     if args.dataset == 'mapillary':
-        global mapColors
         colorMappingFile = Path('data/colorsMapillary.json')
         nameMappingFile = Path('data/mappingMapillary.json')
         with open(colorMappingFile) as mfile:
-            mapColors = json.load(mfile)
+            mapColors = list(json.load(mfile).values())
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     elif args.dataset == 'ADE20K':
@@ -108,11 +109,12 @@ if __name__ == '__main__':
     assert len(imgs), "Exception: imgs should be a path to image (.jpg) or directory."
     # Create output directory
     if not os.path.isdir(args.output):
+        print('Creating empty output directory {}'.format(output))
         os.makedirs(args.output)
     # Create worker pool
     pool = mp.Pool(args.nproc)
     # Assign tasks to workers
-    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=1), total=len(imgs), desc='Mapping images', ascii=True):
+    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
        pass
     # Close pool
     pool.close()
