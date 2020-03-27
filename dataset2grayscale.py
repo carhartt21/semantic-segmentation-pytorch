@@ -5,22 +5,14 @@ import os
 import json
 import multiprocessing as mp
 import time
-
-from pathlib import Path
-from utils import colorEncode, find_recursive
 from tqdm import tqdm
+from pathlib import Path
+#internal libraries
+from utils import colorEncode, find_recursive
 
-
-colorMappingFile=Path('data/colorsMapillary.json')
-nameMappingFile=Path('data/mappingMapillary.json')
-
-with open(nameMappingFile) as mfile:
-    mapNames = json.load(mfile)
-with open(colorMappingFile) as mfile:
-    mapColors = list(json.load(mfile).values())
 
 def remapImage(img):
-    """Maps an image to grayscale image with new classes according to the maps.
+    """Maps an image to a grayscale image according to the maps and saves the result.
 
     Parameters
     ----------
@@ -28,27 +20,35 @@ def remapImage(img):
         Image data with semantic segmentation.
 
     """
-#    output=Path('/media/chge7185/HDD1/datasets/mapillary/new_labels/')
-    output=Path('/mnt/Data/chge7185/datasets/new_labels/')
+    # Read image
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
     imgName = img.split('/')[-1]
-    if os.path.isfile('{}/{}'.format(output, imgName)):
+    # Check if file exists already in the output path
+    if os.path.isfile('{}/{}'.format(args.output, imgName)):
         return
+    # Loop through pixels
     for x in range(0,imgData.shape[0]):
         for y in range(0,imgData.shape[1]):
-            try:
-                oldClass = mapColors.index(list(imgData[x][y][:-1]))
-            except ValueError:
-                print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
+            # Determine old class
+            if args.dataset == 'mapillary':
+                try:
+                    oldClass = mapColors.index(list(imgData[x][y][:-1]))
+                except ValueError:
+                    print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
+            else if args.dataset == 'ADE20K':
+                oldClass = imgData[x][y]
+            # Map to new class
             try:
                 grayImage[x][y] = mapNames[str(oldClass)]
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
-    imageio.imwrite('{}/{}'.format(output, img.split('/')[-1]), grayImage)
+    # Save image
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
 if __name__ == '__main__':
+    config{}
     parser = argparse.ArgumentParser(
         description="Maps and converts a segmentation image dataset to grayscale images"
     )
@@ -72,17 +72,37 @@ if __name__ == '__main__':
         help="Dataset type",
         default='mapillary'
     )
-    args = parser.parse_args()
-    # generate image list
+    parser.add_argument(
+        "--nproc",
+        required=False,
+        type=int,
+        help="Dataset type",
+        default=mp.cpu_count()
+    )
+    # Read args
+    global args = parser.parse_args()
+    if args.dataset == 'mapillary':
+        global colorMappingFile = Path('data/colorsMapillary.json')
+        global nameMappingFile = Path('data/mappingMapillary.json')
+    else if args.dataset == 'ADE20K':
+        global nameMappingFile = Path('data/mappingADE.json')
+    else:
+        print('Exception: Dataset type {} unknown'.format(dataset))
+        return
+    # Generate image list
     if os.path.isdir(args.input):
         print(args.input)
         imgs = find_recursive(args.input, ext='.png')
     else:
         imgs = [args.input]
-    assert len(imgs), "imgs should be a path to image (.jpg) or directory."
+    assert len(imgs), "Exception: imgs should be a path to image (.jpg) or directory."
+    # Create output directory
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
-    pool = mp.Pool(mp.cpu_count())
-    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=10), total=len(imgs), desc='Mapping images', ascii=True):
+    # Create worker pool
+    pool = mp.Pool(args.nproc)
+    # Assign tasks to workers
+    for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=1), total=len(imgs), desc='Mapping images', ascii=True):
        pass
+    # Close pool
     pool.close()
