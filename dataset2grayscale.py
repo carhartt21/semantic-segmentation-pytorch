@@ -20,7 +20,7 @@ def remapImage(img):
         Image data with semantic segmentation.
 
     """
-    global args 
+    global args
     # Read image
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
@@ -38,7 +38,7 @@ def remapImage(img):
                     oldClass = mapColors.index(list(imgData[x][y][:-1]))
                 except ValueError:
                     print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
-            else if args.dataset == 'ADE20K':
+            elif args.dataset == 'ADE20K':
                 oldClass = imgData[x][y]
             # Map to new class
             try:
@@ -51,7 +51,6 @@ def remapImage(img):
     return
 
 if __name__ == '__main__':
-    config{}
     parser = argparse.ArgumentParser(
         description="Maps and converts a segmentation image dataset to grayscale images"
     )
@@ -84,24 +83,22 @@ if __name__ == '__main__':
     )
     # Read args
     global args
+    global mapNames
     args = parser.parse_args()
     if args.dataset == 'mapillary':
         global mapColors
-        global mapNames
         colorMappingFile = Path('data/colorsMapillary.json')
         nameMappingFile = Path('data/mappingMapillary.json')
         with open(colorMappingFile) as mfile:
             mapColors = json.load(mfile)
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
-    else if args.dataset == 'ADE20K':
-        global mapNames
+    elif args.dataset == 'ADE20K':
         nameMappingFile = Path('data/mappingADE.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.loads(mfile)
     else:
         print('Exception: Dataset type {} unknown'.format(dataset))
-        return
     # Generate image list
     if os.path.isdir(args.input):
         print(args.input)
