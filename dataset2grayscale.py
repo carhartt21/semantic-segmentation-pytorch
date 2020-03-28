@@ -84,7 +84,7 @@ def remapImage(img):
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
     # Save image
-    #imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
 if __name__ == '__main__':
@@ -152,18 +152,18 @@ if __name__ == '__main__':
         print('Creating empty output directory {}'.format(args.output))
         os.makedirs(args.output)
     # Create worker pool
-    for img in imgs:
-        start = timer()
-        remapImageMat(img)
-        end = timer()
-        print('Matrix mapping: Elapsed time: {}'.format((end-start)))
-        start = timer()
-        remapImage(img)
-        end = timer()
-        print('Pixel mapping state: Elapsed time: {}'.format((end-start)))
-    # pool = mp.Pool(args.nproc)
-    # # Assign tasks to workers
-    # for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
-    #    pass
-    # # Close pool
-    # pool.close()
+    # for img in imgs:
+    #     start = timer()
+    #     remapImageMat(img)
+    #     end = timer()
+    #     print('Matrix mapping: Elapsed time: {}'.format((end-start)))
+    #     start = timer()
+    #     remapImage(img)
+    #     end = timer()
+    #     print('Pixel mapping state: Elapsed time: {}'.format((end-start)))
+    pool = mp.Pool(args.nproc)
+    # Assign tasks to workers
+    for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
+       pass
+    # Close pool
+    pool.close()
