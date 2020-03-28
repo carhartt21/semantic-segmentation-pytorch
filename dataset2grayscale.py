@@ -4,7 +4,7 @@ import argparse
 import os
 import json
 import multiprocessing as mp
-import time
+from timeit import default_timer as timer
 from tqdm import tqdm
 from pathlib import Path
 #internal libraries
@@ -21,22 +21,23 @@ def remapImageMat(img):
     """
     # Read image
     imgData = imageio.imread(img)
+    imgData = np.delete(imgData,3,2)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
     imgName = img.split('/')[-1]
     # Check if file exists already in the output path
     if os.path.isfile('{}/{}'.format(args.output, imgName)):
         return
-    uniqueRGB = np.unique((np.delete(imgData,3,2).reshape(-1,3)), axis=0)
+    uniqueRGB = np.unique(imgData.reshape(-1,3), axis=0)
     for RGB in uniqueRGB:
         if args.dataset == 'mapillary':
             try:
-                oldClass = mapColors.index(list(imgData[x][y][:-1]))
+                oldClass = mapColors.index(list(RGB))
             except ValueError:
-                print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
+                print('Exception: class {} not found'.format(RGB))
         elif args.dataset == 'ADE20K':
-            oldClass = imgData[x][y]
-        grayImage += (img3 == rgb[0]).all(axis=2) * np.tile(mapNames[oldClass], (imgData.shape[0], imgData.shape[1], 1))
-    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
+            oldClass = RGB
+        grayImage += ((imgData == RGB).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
+    #imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
 
@@ -53,6 +54,8 @@ def remapImage(img):
     imgData = imageio.imread(img)
     grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
     imgName = img.split('/')[-1]
+    prevRGB = []
+    prevClass = 0
     # Check if file exists already in the output path
     if os.path.isfile('{}/{}'.format(args.output, imgName)):
         return
@@ -60,20 +63,28 @@ def remapImage(img):
     for x in range(0,imgData.shape[0]):
         for y in range(0,imgData.shape[1]):
             # Determine old class
+            RGB = imgData[x][y][-1]
+            oldClass = -1
+            if RGB == prevRGB:
+                imgData[x][y] = prevClass
+                continue
             if args.dataset == 'mapillary':
                 try:
-                    oldClass = mapColors.index(list(imgData[x][y][:-1]))
+                    oldClass = mapColors.index(list(RGB))
                 except ValueError:
-                    print('Exception: class {} in {} at [{}, {}] not found'.format(imgData[x][y][-1], img, x, y))
+                    print('Exception: class {} in {} at [{}, {}] not found'.format(RGB, img, x, y))
             elif args.dataset == 'ADE20K':
                 oldClass = imgData[x][y]
             # Map to new class
             try:
-                grayImage[x][y] = mapNames[str(oldClass)]
+                newClass = mapNames[str(oldClass)]
+                grayImage[x][y] = newClass
+                prevRGB = RGB
+                prevClass = newClass
             except ValueError:
                 print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
     # Save image
-    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
+    #imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
 if __name__ == '__main__':
@@ -138,10 +149,18 @@ if __name__ == '__main__':
     assert len(imgs), "Exception: imgs should be a path to image (.jpg) or directory."
     # Create output directory
     if not os.path.isdir(args.output):
-        print('Creating empty output directory {}'.format(output))
+        print('Creating empty output directory {}'.format(args.output))
         os.makedirs(args.output)
     # Create worker pool
-    remapImageMat(img)
+    for img in imgs:
+        start = timer()
+        remapImageMat(img)
+        end = timer()
+        print('Matrix mapping: Elapsed time: {}'.format((end-start)))
+        start = timer()
+        remapImage(img)
+        end = timer()
+        print('Pixel mapping state: Elapsed time: {}'.format((end-start)))
     # pool = mp.Pool(args.nproc)
     # # Assign tasks to workers
     # for _ in tqdm(pool.imap_unordered(remapImage,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
