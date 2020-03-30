@@ -11,20 +11,63 @@ def modNeighbors(i, j, d=1):
     # n = np.hstack((b[:len(b)//2],b[len(b)//2+1:] ))
     return stats.mode(n,axis=None)[0]
 
-segData = imageio.imread('output/ADE_train_00020210_new.png')
-# segData = np.array([
-#       [ 11,  21,  31,  41,  51,  61,  71],
-#       [ 21,  np.nan,  32,  42,  52,  62,  72],
-#       [ 13,  23,  33,  np.nan,  53,  63,  73],
-#       [ 14,  24,  34,  44,  54,  64,  74],
-#       [ 15,  25,  35,  45,  74,  np.nan,  75],
-#       [ 16,  26,  36,  46,  56,  66,  76],
-#       [ 17,  27,  37,  47,  57,  67,  77]])
+def smoothSegmentation(img)
+    segData = imageio.imread(img)
+    print(segData)
+    iX, iY = np.nonzero((segData==38))
+    for x,y in zip(iX, iY):
+        segData[x][y] = modNeighbors(x,y)
 
-print(segData)
-iX, iY = np.nonzero((segData==0))
-for x,y in zip(iX, iY):
-    segData[x][y] = modNeighbors(x,y)
+    imageio.imwrite('test.png',segData)
+    print(segData)
 
-imageio.imwrite('test.png',segData)
-print(segData)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Maps and converts a segmentation image dataset to grayscale images"
+    )
+    parser.add_argument(
+        "--input",
+        required=True,
+        type=str,
+        help="Image path, or a directory name"
+    )
+    parser.add_argument(
+        "--output",
+        required=False,
+        type=str,
+        help="Path for output files",
+        default='output/'
+    )
+    parser.add_argument(
+        "--nproc",
+        required=False,
+        type=int,
+        help="Number of parralel processes",
+        default=mp.cpu_count()
+    )
+    parser.add_argument(
+        "--chunk",
+        required=False,
+        type=int,
+        help="Chunk size for each worker thread",
+        default=mp.cpu_count()
+    )
+    # Read args
+    args = parser.parse_args()
+    # Generate image list
+    if os.path.isdir(args.input):
+        print(args.input)
+        imgs = find_recursive(args.input, ext='.png')
+    else:
+        imgs = [args.input]
+    assert len(imgs), "Exception: imgs should be a path to image (.png|jpg) or directory."
+    # Create output directory
+    if not os.path.isdir(args.output):
+        print('Creating empty output directory {}'.format(args.output))
+        os.makedirs(args.output)
+    pool = mp.Pool(args.nproc)
+    # Assign tasks to workers
+    for _ in tqdm(pool.imap_unordered(smoothSegmentation,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Smoothing segmentation images', ascii=True):
+       pass
+    # Close pool
+    pool.close()
