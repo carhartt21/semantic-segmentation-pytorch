@@ -35,11 +35,13 @@ def remapImageMat(img):
         if args.dataset == 'mapillary':
             try:
                 oldClass = mapColors.index(list(val))
+                grayImage += ((imgData == val).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
             except ValueError:
                 print('Exception: class {} not found'.format(val))
         elif args.dataset == 'ADE20K':
+            grayImage += ((imgData == val) * mapNames[str(val)]).astype(np.uint8)
             oldClass = val
-        grayImage += ((imgData == val).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
+
     #imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
@@ -140,7 +142,7 @@ if __name__ == '__main__':
     elif args.dataset == 'ADE20K':
         nameMappingFile = Path('data/mappingADE.json')
         with open(nameMappingFile) as mfile:
-            mapNames = json.loads(mfile)
+            mapNames = json.load(mfile)
     else:
         print('Exception: Dataset type {} unknown'.format(dataset))
     # Generate image list
