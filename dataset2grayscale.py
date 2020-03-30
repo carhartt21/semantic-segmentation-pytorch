@@ -21,22 +21,25 @@ def remapImageMat(img):
     """
     # Read image
     imgData = imageio.imread(img)
-    imgData = np.delete(imgData,3,2)
-    grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
+    if args.dataset == 'mapillary':
+        imgData = np.delete(imgData,3,2)
+        uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
+    else:
+        uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
+    grayImage = np.zeros((imgData.shape[0], imgData.shape[1]),dtype='uint8')
     imgName = img.split('/')[-1]
     # Check if file exists already in the output path
     if os.path.isfile('{}/{}'.format(args.output, imgName)):
         return
-    uniqueRGB = np.unique(imgData.reshape(-1,3), axis=0)
-    for RGB in uniqueRGB:
+    for val in uniqueValues:
         if args.dataset == 'mapillary':
             try:
-                oldClass = mapColors.index(list(RGB))
+                oldClass = mapColors.index(list(val))
             except ValueError:
-                print('Exception: class {} not found'.format(RGB))
+                print('Exception: class {} not found'.format(val))
         elif args.dataset == 'ADE20K':
-            oldClass = RGB
-        grayImage += ((imgData == RGB).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
+            oldClass = val
+        grayImage += ((imgData == val).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
     #imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
