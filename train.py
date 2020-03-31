@@ -155,8 +155,10 @@ def main(cfg, gpus):
         num_class=cfg.DATASET.num_class,
         weights=cfg.MODEL.weights_decoder)
 
-    # crit = nn.NLLLoss(ignore_index=-1)
-    crit = nn.CrossEntropyLoss(ignore_index=-1)
+    if cfg.MODEL.arch_decoder == 'OCR':
+        crit = nn.CrossEntropyLoss(ignore_index=-1)
+    else:
+        crit = nn.NLLLoss(ignore_index=-1)
 
     if cfg.MODEL.arch_decoder.endswith('deepsup'):
         segmentation_module = SegmentationModule(
@@ -174,8 +176,8 @@ def main(cfg, gpus):
 
     loader_train = torch.utils.data.DataLoader(
         dataset_train,
-        batch_size=len(gpus),  # we have modified data_parallel
-        shuffle=False,  # we do not use this param
+        batch_size=len(gpus),
+        shuffle=False,  # parameter is not used
         collate_fn=user_scattered_collate,
         num_workers=cfg.TRAIN.workers,
         drop_last=True,

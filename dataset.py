@@ -60,6 +60,7 @@ class BaseDataset(torch.utils.data.Dataset):
     def segm_transform(self, segm):
         # to tensor, -1 to 149
         segm = torch.from_numpy(np.array(segm)).long() - 1
+        print(segm)
         return segm
 
     # Round x to the nearest multiple of p and x' >= x
@@ -67,7 +68,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return ((x - 1) // p + 1) * p
 
 
-class TrainDataset(BaseDataset):
+class TrainDataset(BaseDataset(odgt, opt)):
     def __init__(self, root_dataset, odgt, opt, batch_per_gpu=1, **kwargs):
         super(TrainDataset, self).__init__(odgt, opt, **kwargs)
         self.root_dataset = root_dataset

@@ -133,13 +133,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.dataset == 'mapillary':
         colorMappingFile = Path('data/colorsMapillary.json')
-        nameMappingFile = Path('data/mappingMapillary.json')
+        nameMappingFile = Path('data/newMapillaryMap.json')
         with open(colorMappingFile) as mfile:
             mapColors = list(json.load(mfile).values())
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     elif args.dataset == 'ADE20K':
-        nameMappingFile = Path('data/mappingADE.json')
+        nameMappingFile = Path('data/newADE20kMap.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     else:
@@ -156,15 +156,6 @@ if __name__ == '__main__':
         print('Creating empty output directory: {}'.format(args.output))
         os.makedirs(args.output)
     # Create worker pool
-    # for img in imgs:
-    #     start = timer()
-    #     remapImageMat(img)
-    #     end = timer()
-    #     print('Matrix mapping: Elapsed time: {}'.format((end-start)))
-    #     start = timer()
-    #     remapImage(img)
-    #     end = timer()
-    #     print('Pixel mapping state: Elapsed time: {}'.format((end-start)))
     pool = mp.Pool(args.nproc)
     # Assign tasks to workers
     for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):

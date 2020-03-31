@@ -14,10 +14,9 @@ def modNeighbors(segData, i, j, d=1):
 
 def smoothSegmentation(img):
     segData = imageio.imread(img)
-    iX, iY = np.nonzero(segData==255)
+    iX, iY = np.nonzero(segData==0)
     for x,y in zip(iX, iY):
-        d=2
-        mod = modNeighbors(segData, x, y, d)
+        mod = modNeighbors(segData, x, y, d=2)
         # while mod == np.nan:
         #      d+=1
         #      mod = modNeighbors(segData, x,y,d)
