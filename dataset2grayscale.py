@@ -127,7 +127,7 @@ if __name__ == '__main__':
         required=False,
         type=int,
         help="Chunk size for each worker thread",
-        default=mp.cpu_count()
+        default=1
     )
     # Read args
     args = parser.parse_args()
