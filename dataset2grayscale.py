@@ -39,10 +39,9 @@ def remapImageMat(img):
             except ValueError:
                 print('Exception: class {} not found'.format(val))
         elif args.dataset == 'ADE20K':
-            grayImage += ((imgData == val) * mapNames[str(val)]).astype(np.uint8)
-            oldClass = val
+            grayImage += ((imgData == val) * mapNames[str(int(val))]).astype(np.uint8)
 
-    #imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
 
@@ -154,7 +153,7 @@ if __name__ == '__main__':
     assert len(imgs), "Exception: imgs should be a path to image (.jpg) or directory."
     # Create output directory
     if not os.path.isdir(args.output):
-        print('Creating empty output directory {}'.format(args.output))
+        print('Creating empty output directory: {}'.format(args.output))
         os.makedirs(args.output)
     # Create worker pool
     # for img in imgs:

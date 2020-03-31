@@ -2,24 +2,28 @@ import numpy as np
 from scipy import stats
 from timeit import default_timer as timer
 import imageio
-import visvis as vv
+import argparse
+import multiprocessing as mp
+import os
+from utils import find_recursive
+from tqdm import tqdm
 
-
-def modNeighbors(i, j, d=1):
-    n = segData[max(i-1,0):min(segData.shape[0]-1, i+2), max(0,j-1):min(segData.shape[1],j+2)].flatten()
-    # remove the element (i,j)
-    # n = np.hstack((b[:len(b)//2],b[len(b)//2+1:] ))
+def modNeighbors(segData, i, j, d=1):
+    n = segData[max(i-d,0):min(segData.shape[0]-d, i+d+1), max(0,j-d):min(segData.shape[1],j+d+1)].flatten()
     return stats.mode(n,axis=None)[0]
 
-def smoothSegmentation(img)
-    segData = imageio.imread(img)
-    print(segData)
-    iX, iY = np.nonzero((segData==38))
+def smoothSegmentation(img):
+    segData = imageio.imread(img).astype(float)
+    segData[segData==255] = np.nan
+    iX, iY = np.nonzero(np.isnan(segData))
     for x,y in zip(iX, iY):
-        segData[x][y] = modNeighbors(x,y)
-
-    imageio.imwrite('test.png',segData)
-    print(segData)
+        d=1
+        mod = modNeighbors(segData, x, y, d)
+        while mod == np.nan:
+             d+=1
+             mod = modNeighbors(segData, x,y,d)
+        segData[x][y] = mod
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), segData.astype(np.uint8))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
