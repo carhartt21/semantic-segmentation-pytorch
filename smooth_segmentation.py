@@ -13,17 +13,16 @@ def modNeighbors(segData, i, j, d=1):
     return stats.mode(n,axis=None)[0]
 
 def smoothSegmentation(img):
-    segData = imageio.imread(img).astype(float)
-    segData[segData==255] = np.nan
-    iX, iY = np.nonzero(np.isnan(segData))
+    segData = imageio.imread(img)
+    iX, iY = np.nonzero(segData==255)
     for x,y in zip(iX, iY):
-        d=1
+        d=2
         mod = modNeighbors(segData, x, y, d)
-        while mod == np.nan:
-             d+=1
-             mod = modNeighbors(segData, x,y,d)
+        # while mod == np.nan:
+        #      d+=1
+        #      mod = modNeighbors(segData, x,y,d)
         segData[x][y] = mod
-    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), segData.astype(np.uint8))
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), segData)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
