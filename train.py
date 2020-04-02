@@ -152,7 +152,7 @@ def main(cfg, gpus):
     net_decoder = ModelBuilder.build_decoder(
         arch=cfg.MODEL.arch_decoder.lower(),
         fc_dim=cfg.MODEL.fc_dim,
-        ass=cfg.DATASET.num_class,
+        num_class=cfg.DATASET.num_class,
         weights=cfg.MODEL.weights_decoder)
 
     if cfg.MODEL.arch_decoder == 'OCR':
