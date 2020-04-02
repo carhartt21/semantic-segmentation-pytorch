@@ -68,7 +68,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return ((x - 1) // p + 1) * p
 
 
-class TrainDataset(BaseDataset(odgt, opt)):
+class TrainDataset(BaseDataset):
     def __init__(self, root_dataset, odgt, opt, batch_per_gpu=1, **kwargs):
         super(TrainDataset, self).__init__(odgt, opt, **kwargs)
         self.root_dataset = root_dataset
