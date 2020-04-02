@@ -85,21 +85,24 @@ if __name__ == '__main__':
         required=False)
     args = parser.parse_args()
 
+    imgs = []
     if os.path.isdir(args.imgpath):
-        imgs = find_recursive(args.imgpath, '.png')
+        imgs += find_recursive(args.imgpath, '.jpg')
+        imgs += find_recursive(args.imgpath, '.png')
     else:
         print("Exception: imgpath {} is not a directory".format(args.imgpath))
 
     if not os.path.isdir(args.segpath):
         print("Exception: segpath {} is not a directory".format(args.segpath))
-
+    
+    print('{} images found in {}'.format(len(imgs), args.imgpath)) 
     #     print(args.segs)
     #     segs = find_recursive(args.segs)
     # else:
     list = []
     for img in imgs:
         imgSize = get_image_size(img)
-        if os.path.isfile(os.path.join(args.segpath,img.split('/')[-1])):
+        if os.path.isfile(os.path.join(args.segpath,'{}{}'.format(img.split('/')[-1][:-4],'.png'))):
             list.append({'fpath_img': img, 'fpath_segm':img, 'width': imgSize[0], 'height': imgSize[1]})
     with open(args.outfile, 'w') as outfile:
         json.dump(list, outfile, indent=1, separators=(',', ':'))
