@@ -152,7 +152,7 @@ def main(cfg, gpus):
     net_decoder = ModelBuilder.build_decoder(
         arch=cfg.MODEL.arch_decoder.lower(),
         fc_dim=cfg.MODEL.fc_dim,
-        num_class=cfg.DATASET.num_class,
+        ass=cfg.DATASET.num_class,
         weights=cfg.MODEL.weights_decoder)
 
     if cfg.MODEL.arch_decoder == 'OCR':
@@ -225,13 +225,13 @@ if __name__ == '__main__':
         metavar="FILE",
         help="path to config file",
         type=str,
+        required=True
     )
     parser.add_argument(
         "--gpus",
-        default="0-3",
+        default="0",
         help="gpus to use, e.g. 0-3 or 0,1,2,3"
     )
-
     parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
