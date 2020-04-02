@@ -40,7 +40,7 @@ class BaseDataset(torch.utils.data.Dataset):
             self.list_sample = odgt
         elif isinstance(odgt, str):
             with open(odgt, 'r') as listFile:
-                self.list_sample = json.loads(listFile)
+                self.list_sample = json.load(listFile)
             # self.list_sample = [json.loads(x.rstrip()) for x in open(odgt, 'r')]
 
         if max_sample > 0:
