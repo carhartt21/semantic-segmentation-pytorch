@@ -110,11 +110,12 @@ class ModelBuilder:
             raise Exception('Architecture undefined!')
 
         # encoders are usually pretrained
-        net_encoder.apply(ModelBuilder.weights_init)
         if len(weights) > 0:
             print('Loading weights for net_encoder')
             net_encoder.load_state_dict(
                 torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
+        else:
+            net_encoder.apply(ModelBuilder.weights_init)    
         return net_encoder
 
     @staticmethod
