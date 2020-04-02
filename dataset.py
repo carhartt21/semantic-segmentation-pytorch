@@ -58,7 +58,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return img
 
     def segm_transform(self, segm):
-        # to tensor, -1 to 149
+        # to tensor, -1 to num_class-1
         segm = torch.from_numpy(np.array(segm)).long() - 1
         print(segm)
         return segm

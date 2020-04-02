@@ -11998,8 +11998,7 @@
   "fpath_segm":"data/map20k/mapillary/images/validation/sBrbx-NpMTh0TmaNedrSbQ.jpg",
   "width":4032,
   "height":3024
- }
-][
+ },
  {
   "fpath_img":"data/map20k/ADE20k/images/validation/ADE_val_00000556.jpg",
   "fpath_segm":"data/map20k/ADE20k/images/validation/ADE_val_00000556.jpg",
