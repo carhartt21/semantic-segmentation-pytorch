@@ -163,8 +163,6 @@ class TrainDataset(BaseDataset):
 
             img = Image.open(image_path).convert('RGB')
             segm = Image.open(segm_path)
-            print(segm)
-            time.sleep(5)
             assert(segm.mode == "L", 'Exception: segmentation file {} is not in mode L'.format(segm_path))
             assert(img.size[0] == segm.size[0])
             assert(img.size[1] == segm.size[1])
@@ -194,6 +192,8 @@ class TrainDataset(BaseDataset):
 
             # segm transform, to torch long tensor HxW
             segm = self.segm_transform(segm)
+            print(segm)
+            time.sleep(5)
 
             # put into batch arrays
             batch_images[i][:, :img.shape[1], :img.shape[2]] = img
