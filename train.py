@@ -225,13 +225,13 @@ if __name__ == '__main__':
         metavar="FILE",
         help="path to config file",
         type=str,
+        required=True
     )
     parser.add_argument(
         "--gpus",
-        default="0-3",
+        default="0",
         help="gpus to use, e.g. 0-3 or 0,1,2,3"
     )
-
     parser.add_argument(
         "opts",
         help="Modify config options using the command-line",

@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+import time
 from torchvision import transforms
 import numpy as np
 from PIL import Image
@@ -39,7 +40,9 @@ class BaseDataset(torch.utils.data.Dataset):
         if isinstance(odgt, list):
             self.list_sample = odgt
         elif isinstance(odgt, str):
-            self.list_sample = [json.loads(x.rstrip()) for x in open(odgt, 'r')]
+            with open(odgt, 'r') as listFile:
+                self.list_sample = json.load(listFile)
+            # self.list_sample = [json.loads(x.rstrip()) for x in open(odgt, 'r')]
 
         if max_sample > 0:
             self.list_sample = self.list_sample[0:max_sample]
@@ -58,7 +61,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return img
 
     def segm_transform(self, segm):
-        # to tensor, -1 to 149
+        # to tensor, -1 to num_class-1
         segm = torch.from_numpy(np.array(segm)).long() - 1
         print(segm)
         return segm
@@ -68,7 +71,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return ((x - 1) // p + 1) * p
 
 
-class TrainDataset(BaseDataset(odgt, opt)):
+class TrainDataset(BaseDataset):
     def __init__(self, root_dataset, odgt, opt, batch_per_gpu=1, **kwargs):
         super(TrainDataset, self).__init__(odgt, opt, **kwargs)
         self.root_dataset = root_dataset
@@ -160,7 +163,7 @@ class TrainDataset(BaseDataset(odgt, opt)):
 
             img = Image.open(image_path).convert('RGB')
             segm = Image.open(segm_path)
-            assert(segm.mode == "L")
+            assert(segm.mode == "L", 'Exception: segmentation file {} is not in mode L'.format(segm_path))
             assert(img.size[0] == segm.size[0])
             assert(img.size[1] == segm.size[1])
 
@@ -189,6 +192,8 @@ class TrainDataset(BaseDataset(odgt, opt)):
 
             # segm transform, to torch long tensor HxW
             segm = self.segm_transform(segm)
+            print(segm)
+            time.sleep(5)
 
             # put into batch arrays
             batch_images[i][:, :img.shape[1], :img.shape[2]] = img
