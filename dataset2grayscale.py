@@ -91,6 +91,17 @@ def remapImage(img):
     imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
+    def checkImage(img):
+        imgData = imageio.imread(img)
+        if args.dataset == 'mapillary':
+            imgData = np.delete(imgData,3,2)
+            uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
+        else:
+            uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
+        if max(uniqueValues)>43:
+            print('Class error in image {} class {} expires range'.format(img,max(uniqueValues)))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Maps and converts a segmentation image dataset to grayscale images"
@@ -158,7 +169,9 @@ if __name__ == '__main__':
     # Create worker pool
     pool = mp.Pool(args.nproc)
     # Assign tasks to workers
-    for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
+    # for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
+    #    pass
+    for _ in tqdm(pool.imap_unordered(test,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
        pass
     # Close pool
     pool.close()
