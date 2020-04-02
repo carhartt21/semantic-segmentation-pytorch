@@ -102,7 +102,12 @@ if __name__ == '__main__':
     list = []
     for img in imgs:
         imgSize = get_image_size(img)
-        if os.path.isfile(os.path.join(args.segpath,'{}{}'.format(img.split('/')[-1][:-4],'.png'))):
-            list.append({'fpath_img': img, 'fpath_segm':img, 'width': imgSize[0], 'height': imgSize[1]})
+        seg = img.replace('images', 'labels')
+        seg = seg.replace('.jpg', '.png')
+        if os.path.isfile(seg):
+            list.append({'fpath_img': img, 'fpath_segm':seg, 'width': imgSize[0], 'height': imgSize[1]})
+        else:
+            print('Exception: could not find segmentation file {}'.format(seg))
     with open(args.outfile, 'w') as outfile:
         json.dump(list, outfile, indent=1, separators=(',', ':'))
+    print('Finished: wrote {} files to file {}'.format(len(list),args.outfile))
