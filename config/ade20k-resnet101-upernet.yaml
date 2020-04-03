@@ -8,7 +8,6 @@ DATASET:
   padding_constant: 32
   segm_downsampling_rate: 4
   random_flip: True
-  classInfo: "./data/ADE20kClasses.json"
 
 MODEL:
   arch_encoder: "resnet101"
@@ -34,10 +33,10 @@ TRAIN:
 
 VAL:
   visualize: False
-  checkpoint: "epoch_50.pth"
+  checkpoint: "epoch_40.pth"
 
 TEST:
-  checkpoint: "epoch_50.pth"
+  checkpoint: "epoch_40.pth"
   result: "./"
 
-DIR: "pretrained_models/pytorch/ade20k-resnet101-upernet"
+DIR: "ckpt/ade20k-resnet101-upernet"
