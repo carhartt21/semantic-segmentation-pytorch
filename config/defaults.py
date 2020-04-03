@@ -25,6 +25,8 @@ _C.DATASET.padding_constant = 8
 _C.DATASET.segm_downsampling_rate = 8
 # randomly horizontally flip images when train/test
 _C.DATASET.random_flip = True
+# info file
+_C.DATASET.classInfo = "./data/ADE20kClasses.json"
 
 # -----------------------------------------------------------------------------
 # Model

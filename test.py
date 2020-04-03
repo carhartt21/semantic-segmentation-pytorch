@@ -6,7 +6,6 @@ from distutils.version import LooseVersion
 import numpy as np
 import torch
 import torch.nn as nn
-from scipy.io import loadmat
 import csv
 # Our libs
 from dataset import TestDataset
