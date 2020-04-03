@@ -8,7 +8,7 @@ DATASET:
   padding_constant: 32
   segm_downsampling_rate: 4
   random_flip: True
-  info: "./data/map20kClasses.json"
+  classInfo: "./data/map20kClasses.json"
 
 MODEL:
   arch_encoder: "hrnetv2"

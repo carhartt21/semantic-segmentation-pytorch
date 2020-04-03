@@ -2,6 +2,7 @@
 import os
 import argparse
 from distutils.version import LooseVersion
+import json
 # Numerical libs
 import numpy as np
 import torch
@@ -21,11 +22,12 @@ from config import cfg
 def visualize_result(data, pred, cfg):
     colors = []
     names = {}
-    with open(cfg.DATASET.info) as f:
+    with open(cfg.DATASET.classInfo) as f:
         clsInfo = json.load(f)
     for c in clsInfo:
         names[c] = clsInfo[c]['name']
         colors.append(clsInfo[c]['color'])
+    colors = np.array(colors, dtype='uint8')
     (img, info) = data
     show_result = False
     # print predictions in descending order
@@ -34,7 +36,7 @@ def visualize_result(data, pred, cfg):
     uniques, counts = np.unique(pred, return_counts=True)
     print("Predictions in [{}]:".format(info))
     for idx in np.argsort(counts)[::-1]:
-        name = names[uniques[idx] + 1]
+        name = names[str(uniques[idx] + 1)]
         ratio = counts[idx] / pixs * 100
         if ratio > 0.1:
             print("  {}: {:.2f}%".format(name, ratio))
@@ -76,7 +78,7 @@ def test(segmentation_module, loader, gpu):
                 scores = scores + pred_tmp / len(cfg.DATASET.imgSizes)
             _, pred = torch.max(scores, dim=1)
             pred = as_numpy(pred.squeeze(0).cpu())
-            print(pred)
+            #print(pred)
 
         # visualization
         visualize_result(
