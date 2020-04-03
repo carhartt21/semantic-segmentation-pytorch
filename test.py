@@ -143,7 +143,7 @@ if __name__ == '__main__':
         help="an image paths, or a directory name"
     )
     parser.add_argument(
-        "--4q42q23",
+        "--cfg",
         default="config/ade20k-resnet50dilated-ppm_deepsup.yaml",
         metavar="FILE",
         help="path to config file",
