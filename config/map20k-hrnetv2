@@ -4,10 +4,11 @@ DATASET:
   list_val: "./data/map20kValidation.odgt"
   num_class: 43
   imgSizes: (300, 375, 450, 525, 600)
-  imgMaxSize: 2000
+  imgMaxSize: 1200
   padding_constant: 32
   segm_downsampling_rate: 4
   random_flip: True
+  info: "./data/map20kClasses.json"
 
 MODEL:
   arch_encoder: "hrnetv2"

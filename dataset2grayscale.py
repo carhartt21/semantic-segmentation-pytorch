@@ -144,13 +144,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.dataset == 'mapillary':
         colorMappingFile = Path('data/colorsMapillary.json')
-        nameMappingFile = Path('data/newMapillaryMap.json')
+        nameMappingFile = Path('data/MapillaryMap.json')
         with open(colorMappingFile) as mfile:
             mapColors = list(json.load(mfile).values())
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     elif args.dataset == 'ADE20K':
-        nameMappingFile = Path('data/newADE20kMap.json')
+        nameMappingFile = Path('data/ADE20kMap.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     else:

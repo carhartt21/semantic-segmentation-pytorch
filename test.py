@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 from scipy.io import loadmat
 import csv
-from matplotlib import pyplot as plt
 # Our libs
 from dataset import TestDataset
 from models import ModelBuilder, SegmentationModule
@@ -19,16 +18,15 @@ from PIL import Image
 from tqdm import tqdm
 from config import cfg
 
-colors = loadmat('data/color150.mat')['colors']
-names = {}
-with open('data/object150_info.csv') as f:
-    reader = csv.reader(f)
-    next(reader)
-    for row in reader:
-        names[int(row[0])] = row[5].split(";")[0]
-
 
 def visualize_result(data, pred, cfg):
+    colors = []
+    names = {}
+    with open(cfg.DATASET.info) as f:
+        clsInfo = json.load(f)
+    for c in clsInfo:
+        names[c] = clsInfo[c]['name']
+        colors.append(clsInfo[c]['color'])
     (img, info) = data
     show_result = False
     # print predictions in descending order
@@ -51,9 +49,6 @@ def visualize_result(data, pred, cfg):
     img_name = info.split('/')[-1]
     Image.fromarray(im_vis).save(
         os.path.join(cfg.TEST.result, '{}_{}{}.png'.format(img_name[:-4], cfg.MODEL.arch_encoder, cfg.MODEL.arch_decoder)))
-    if show_result:
-        plt.imshow(Image.fromarray(im_vis))
-        plt.show()
 
 def test(segmentation_module, loader, gpu):
     segmentation_module.eval()
@@ -148,7 +143,7 @@ if __name__ == '__main__':
         help="an image paths, or a directory name"
     )
     parser.add_argument(
-        "--cfg",
+        "--4q42q23",
         default="config/ade20k-resnet50dilated-ppm_deepsup.yaml",
         metavar="FILE",
         help="path to config file",

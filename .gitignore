@@ -1,5 +1,6 @@
 *.pyc
 
+aux/
 ckpt/
 vis/
 log/
