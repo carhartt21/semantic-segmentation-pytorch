@@ -119,7 +119,7 @@ def colorEncode(labelmap, colors, mode='RGB'):
         if label < 0:
             continue
         labelmap_rgb += (labelmap == label)[:, :, np.newaxis] * \
-            np.tile(colors[label],
+            np.tile(colors[label+1],
                     (labelmap.shape[0], labelmap.shape[1], 1))
 
     if mode == 'BGR':

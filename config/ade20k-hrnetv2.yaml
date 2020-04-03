@@ -8,6 +8,7 @@ DATASET:
   padding_constant: 32
   segm_downsampling_rate: 4
   random_flip: True
+  classInfo: "./data/ADE20kClasses.json"
 
 MODEL:
   arch_encoder: "hrnetv2"
@@ -15,7 +16,7 @@ MODEL:
   fc_dim: 720
 
 TRAIN:
-  batch_size_per_gpu: 2
+  batch_size_per_gpu: 1
   num_epoch: 30
   start_epoch: 0
   epoch_iters: 5000
@@ -39,4 +40,5 @@ TEST:
   checkpoint: "epoch_30.pth"
   result: "./"
 
-DIR: "ckpt/ade20k-hrnetv2-c1"
+DIR: "pretrained_models/pytorch/ade20k-hrnetv2-c1"
+
