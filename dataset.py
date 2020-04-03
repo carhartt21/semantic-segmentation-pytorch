@@ -191,8 +191,6 @@ class TrainDataset(BaseDataset):
 
             # segm transform, to torch long tensor HxW
             segm = self.segm_transform(segm)
-            print(segm)
-            time.sleep(5)
 
             # put into batch arrays
             batch_images[i][:, :img.shape[1], :img.shape[2]] = img

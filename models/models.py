@@ -115,7 +115,7 @@ class ModelBuilder:
             net_encoder.load_state_dict(
                 torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
         else:
-            net_encoder.apply(ModelBuilder.weights_init)    
+            net_encoder.apply(ModelBuilder.weights_init)
         return net_encoder
 
     @staticmethod
@@ -418,10 +418,6 @@ class OCR(nn.Module):
         if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
             feats = nn.functional.interpolate(
                 feats, size=segSize, mode='bilinear', align_corners=False)
-        if self.use_softmax:  # is True during inference
-            feats = nn.functional.softmax(feats, dim=1)
-        else:
-            feats = nn.functional.log_softmax(feats, dim=1)
         # ocr
         out_aux = self.aux_head(feats)
         # compute contrast feature
@@ -433,6 +429,9 @@ class OCR(nn.Module):
         out = self.cls_head(feats)
         # out_aux_seg.append(out_aux)
         # out_aux_seg.append(out)
+        if self.use_softmax: # is True during inference
+            out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+            out = nn.functional.softmax(x, dim=1)
         return out
 
 
