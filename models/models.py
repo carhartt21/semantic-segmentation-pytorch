@@ -431,7 +431,7 @@ class OCR(nn.Module):
         # out_aux_seg.append(out)
         if self.use_softmax: # is True during inference
             out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
-            out = nn.functional.softmax(x, dim=1)
+            out = nn.functional.softmax(out, dim=1)
         return out
 
 
