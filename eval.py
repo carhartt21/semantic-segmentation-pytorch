@@ -3,6 +3,7 @@ import os
 import time
 import argparse
 from distutils.version import LooseVersion
+import json
 # Numerical libs
 import numpy as np
 import torch
@@ -44,7 +45,7 @@ def evaluate(segmentation_module, loader, cfg, gpu):
 
     segmentation_module.eval()
 
-    pbar = tqdm(total=len(loader))
+    pbar = tqdm(total=len(loader), ascii=True, desc='Running evaluation')
     for batch_data in loader:
         # process data
         batch_data = batch_data[0]
@@ -183,7 +184,7 @@ if __name__ == '__main__':
     cfg.MODEL.weights_decoder = os.path.join(
         cfg.DIR, 'decoder_' + cfg.VAL.checkpoint)
     assert os.path.exists(cfg.MODEL.weights_encoder) and \
-        os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exitst!"
+        os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exist!"
 
     if not os.path.isdir(os.path.join(cfg.DIR, "result")):
         os.makedirs(os.path.join(cfg.DIR, "result"))
