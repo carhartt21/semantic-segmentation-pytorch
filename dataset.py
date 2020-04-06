@@ -162,7 +162,7 @@ class TrainDataset(BaseDataset):
 
             img = Image.open(image_path).convert('RGB')
             segm = Image.open(segm_path)
-            assert(segm.mode == "L", 'Exception: segmentation file {} is not in mode L'.format(segm_path))
+            assert(segm.mode == "L"), 'Exception: segmentation file {} is not in mode L'.format(segm_path)
             assert(img.size[0] == segm.size[0])
             assert(img.size[1] == segm.size[1])
 

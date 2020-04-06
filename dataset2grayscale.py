@@ -24,6 +24,9 @@ def remapImageMat(img):
     if args.dataset == 'mapillary':
         imgData = np.delete(imgData,3,2)
         uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
+    if args.dataset == 'ADE':
+        imgData = imgData[:,:,0]*256/10+imgData[:,:,1]
+        uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
     else:
         uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
     grayImage = np.zeros((imgData.shape[0], imgData.shape[1]),dtype='uint8')
@@ -38,6 +41,8 @@ def remapImageMat(img):
                 grayImage += ((imgData == val).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
             except ValueError:
                 print('Exception: class {} not found'.format(val))
+        elif args.dataset == 'ADE':
+            grayImage += ((imgData == val) * mapNames[str(int(val))]).astype(np.uint8)
         elif args.dataset == 'ADE20K':
             grayImage += ((imgData == val) * mapNames[str(int(val))]).astype(np.uint8)
 
@@ -91,16 +96,6 @@ def remapImage(img):
     imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
     return
 
-    def checkImage(img):
-        imgData = imageio.imread(img)
-        if args.dataset == 'mapillary':
-            imgData = np.delete(imgData,3,2)
-            uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
-        else:
-            uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
-        if max(uniqueValues)>43:
-            print('Class error in image {} class {} expires range'.format(img,max(uniqueValues)))
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -150,6 +145,10 @@ if __name__ == '__main__':
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     elif args.dataset == 'ADE20K':
+        nameMappingFile = Path('data/ADEMap.json')
+    with open(nameMappingFile) as mfile:
+        mapNames = json.load(mfile)
+    elif args.dataset == 'ADE20K':
         nameMappingFile = Path('data/ADE20kMap.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
@@ -169,9 +168,7 @@ if __name__ == '__main__':
     # Create worker pool
     pool = mp.Pool(args.nproc)
     # Assign tasks to workers
-    # for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
-    #    pass
-    for _ in tqdm(pool.imap_unordered(test,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
+    for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
        pass
     # Close pool
     pool.close()
