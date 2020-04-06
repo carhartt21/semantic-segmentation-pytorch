@@ -7,7 +7,6 @@ from distutils.version import LooseVersion
 import numpy as np
 import torch
 import torch.nn as nn
-from scipy.io import loadmat
 # Our libs
 from config import cfg
 from dataset import ValDataset
@@ -18,22 +17,21 @@ from lib.utils import as_numpy
 from PIL import Image
 from tqdm import tqdm
 
-colors = loadmat('data/color150.mat')['colors']
-
 
 def visualize_result(data, pred, dir_result):
+    colors = []
+    with open(cfg.DATASET.classInfo) as f:
+        clsInfo = json.load(f)
+    for c in clsInfo:
+        colors.append(clsInfo[c]['color'])
     (img, seg, info) = data
-
     # segmentation
     seg_color = colorEncode(seg, colors)
-
     # prediction
     pred_color = colorEncode(pred, colors)
-
     # aggregate images and save
     im_vis = np.concatenate((img, seg_color, pred_color),
                             axis=1).astype(np.uint8)
-
     img_name = info.split('/')[-1]
     Image.fromarray(im_vis).save(os.path.join(dir_result, img_name.replace('.jpg', '.png')))
 
