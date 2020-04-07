@@ -18,8 +18,7 @@ from lib.utils import as_numpy
 from PIL import Image
 from tqdm import tqdm
 from config import cfg
-from modelsummary import get_model_summary
-
+from models.modelsummary import get_model_summary
 
 def visualize_result(data, pred, cfg):
     colors = []
@@ -126,7 +125,7 @@ def main(cfg, gpu):
 
     segmentation_module.cuda()
 
-    get_model_summary(segmentation_module.cuda())
+    get_model_summary(segmentation_module.cuda(), verbose=True)
 
     # Main loop
     test(segmentation_module, loader_test, gpu)
