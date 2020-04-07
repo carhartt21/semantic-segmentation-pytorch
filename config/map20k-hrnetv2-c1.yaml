@@ -1,0 +1,45 @@
+DATASET:
+  root_dataset: "./data/"
+  list_train: "./data/map20kTrain.odgt"
+  list_val: "./data/map20kVal.odgt"
+  num_class: 43
+  imgSizes: (300, 375, 450, 525, 600)
+  imgMaxSize: 1200
+  padding_constant: 32
+  segm_downsampling_rate: 4
+  random_flip: True
+  classInfo: "./data/map20kClasses.json"
+
+MODEL:
+  arch_encoder: "hrnetv2"
+  arch_decoder: "c1"
+  weights_encoder: "weights/map20k-hrnetv2-c1/encoder_epoch_100.pth"
+  weights_decoder: "weights/map20k-hrnetv2-c1/decoder_epoch_100.pth"
+  fc_dim: 720
+
+TRAIN:
+  batch_size_per_gpu: 1
+  num_epoch: 100
+  start_epoch: 60
+  epoch_iters: 5000
+  optim: "SGD"
+  lr_encoder: 0.02
+  lr_decoder: 0.02
+  lr_pow: 0.9
+  beta1: 0.9
+  weight_decay: 1e-4
+  deep_sup_scale: 0.4
+  fix_bn: False
+  workers: 32
+  disp_iter: 20
+  seed: 304
+
+VAL:
+  visualize: False
+  checkpoint: "epoch_50.pth"
+
+TEST:
+  checkpoint: "epoch_50.pth"
+  result: "./"
+
+DIR: "./weights/map20k-hrnetv2-c1/"
