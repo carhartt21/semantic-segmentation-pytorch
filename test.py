@@ -106,8 +106,8 @@ def main(cfg, gpu):
         weights=cfg.MODEL.weights_decoder,
         use_softmax=True)
 
-    # crit = nn.NLLLoss(ignore_index=-1)
-    crit = nn.CrossEntropyLoss(ignore_index=-1)
+    crit = nn.NLLLoss(ignore_index=-1)
+    #crit = nn.CrossEntropyLoss(ignore_index=-1)
 
     segmentation_module = SegmentationModule(net_encoder, net_decoder, crit)
 
@@ -125,6 +125,7 @@ def main(cfg, gpu):
 
     segmentation_module.cuda()
 
+    dump_input = torch.rand((1, 3, 1200, 600)
     get_model_summary(segmentation_module.cuda(), verbose=True)
 
     # Main loop

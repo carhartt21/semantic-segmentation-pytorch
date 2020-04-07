@@ -15,6 +15,7 @@ from config import cfg
 from dataset import TrainDataset
 from models import ModelBuilder, SegmentationModule
 from utils import AverageMeter, parse_devices, setup_logger
+from eval import evaluate
 from lib.nn import UserScatteredDataParallel, user_scattered_collate, patch_replication_callback
 
 
@@ -60,11 +61,13 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
         if i % cfg.TRAIN.disp_iter == 0:
             print('Epoch: [{}][{}/{}], Time: {:.2f}, Data: {:.2f}, '
                   'lr_encoder: {:.6f}, lr_decoder: {:.6f}, '
-                  'Accuracy: {:4.2f}, Loss: {:.6f}'
+                  'Accuracy: {:4.2f}, Loss: {:.6f},'
+                  'Last score: {:.2f}, Best score: {:.2f}'
                   .format(epoch, i, cfg.TRAIN.epoch_iters,
                           batch_time.average(), data_time.average(),
                           cfg.TRAIN.running_lr_encoder, cfg.TRAIN.running_lr_decoder,
-                          ave_acc.average(), ave_total_loss.average()))
+                          ave_acc.average(), ave_total_loss.average(),
+                          history['train']['lastScore'], history['train']['bestScore']))
 
             fractional_epoch = epoch - 1 + 1. * i / cfg.TRAIN.epoch_iters
             history['train']['epoch'].append(fractional_epoch)
@@ -157,7 +160,7 @@ def main(cfg, gpus):
 
     if cfg.MODEL.arch_decoder == 'ocr':
         print('Using cross entropy loss')
-        crit = nn.CrossEntropyLoss(ignore_index=-1)
+        crit = CrossEntropy(ignore_index=-1)
     else:
         crit = nn.NLLLoss(ignore_index=-1)
 
@@ -165,8 +168,7 @@ def main(cfg, gpus):
         segmentation_module = SegmentationModule(
             net_encoder, net_decoder, crit, cfg.TRAIN.deep_sup_scale)
     else:
-        segmentation_module = SegmentationModule(
-            net_encoder, net_decoder, crit)
+        segmentation_module = SegmentationModule(net_encoder, net_decoder, crit)
 
     # Dataset and Loader
     dataset_train = TrainDataset(
@@ -183,10 +185,25 @@ def main(cfg, gpus):
         num_workers=cfg.TRAIN.workers,
         drop_last=True,
         pin_memory=True)
-    print('1 Epoch = {} iters'.format(cfg.TRAIN.epoch_iters))
-
     # create loader iterator
     iterator_train = iter(loader_train)
+    print('1 Epoch = {} iters'.format(cfg.TRAIN.epoch_iters))
+
+
+    if cfg.TRAIN.eval:
+    # Dataset and Loader for validtaion data
+        dataset_val = ValDataset(
+            cfg.DATASET.root_dataset,
+            cfg.DATASET.list_val,
+            cfg.DATASET)
+        loader_val = torch.utils.data.DataLoader(
+            dataset_val,
+            batch_size=cfg.VAL.batch_size,
+            shuffle=False,
+            collate_fn=user_scattered_collate,
+            num_workers=5,
+            drop_last=True)
+        iterator_train = iter(loader_val)
 
     # load nets into gpu
     if len(gpus) > 1:
@@ -202,14 +219,18 @@ def main(cfg, gpus):
     optimizers = create_optimizers(nets, cfg)
 
     # Main loop
-    history = {'train': {'epoch': [], 'loss': [], 'acc': []}}
-
+    history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'lastScore': 0, 'bestScore': 0}}
+    bestScore = cfg.TRAIN.bestScore
     for epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch):
         train(segmentation_module, iterator_train, optimizers, history, epoch+1, cfg)
-
+        if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=5):
+            iou, acc = evaluate(segmentation_module, loader_val, cfg, gpus)
+            score = iou+acc/2
+            if score>bestScore
+                history['train']['']
+                checkpoint(nets, history, cfg, 'bestScore')
         # checkpointing
         checkpoint(nets, history, cfg, epoch+1)
-
     print('Training Done!')
 
 
@@ -262,8 +283,12 @@ if __name__ == '__main__':
             cfg.DIR, 'encoder_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
         cfg.MODEL.weights_decoder = os.path.join(
             cfg.DIR, 'decoder_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
+        cfg.MODEL.history = os.path.join(
+            cfg.DIR, 'history_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
         assert os.path.exists(cfg.MODEL.weights_encoder) and \
-            os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exitst!"
+            os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exist!"
+        if os.path.exists(cfg.MODEL.history)
+            try:
 
     # Parse gpu ids
     gpus = parse_devices(args.gpus)
