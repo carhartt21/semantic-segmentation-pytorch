@@ -5,7 +5,7 @@ import re
 import functools
 import fnmatch
 import numpy as np
-
+import torch.nn as nn
 
 def setup_logger(distributed_rank=0, filename="log.txt"):
     logger = logging.getLogger("Logger")

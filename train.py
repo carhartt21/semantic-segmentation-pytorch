@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 from config import cfg
 from dataset import TrainDataset
 from models import ModelBuilder, SegmentationModule
-from utils import AverageMeter, parse_devices, setup_logger
+from utils import AverageMeter, parse_devices, setup_logger, CrossEntropy
 from eval import evaluate
 from lib.nn import UserScatteredDataParallel, user_scattered_collate, patch_replication_callback
 
@@ -61,7 +61,7 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
         if i % cfg.TRAIN.disp_iter == 0:
             print('Epoch: [{}][{}/{}], Time: {:.2f}, Data: {:.2f}, '
                   'lr_encoder: {:.6f}, lr_decoder: {:.6f}, '
-                  'Accuracy: {:4.2f}, Loss: {:.6f},'
+                  'Accuracy: {:4.2f}, Loss: {:.6f}, '
                   'Last score: {:.2f}, Best score: {:.2f}'
                   .format(epoch, i, cfg.TRAIN.epoch_iters,
                           batch_time.average(), data_time.average(),
@@ -160,7 +160,7 @@ def main(cfg, gpus):
 
     if cfg.MODEL.arch_decoder == 'ocr':
         print('Using cross entropy loss')
-        crit = CrossEntropy(ignore_index=-1)
+        crit = CrossEntropy(ignore_label=-1)
     else:
         crit = nn.NLLLoss(ignore_index=-1)
 
@@ -223,12 +223,12 @@ def main(cfg, gpus):
     bestScore = cfg.TRAIN.bestScore
     for epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch):
         train(segmentation_module, iterator_train, optimizers, history, epoch+1, cfg)
-        if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=5):
-            iou, acc = evaluate(segmentation_module, loader_val, cfg, gpus)
-            score = iou+acc/2
-            if score>bestScore
-                history['train']['']
-                checkpoint(nets, history, cfg, 'bestScore')
+#        if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=5):
+#            iou, acc = evaluate(segmentation_module, loader_val, cfg, gpus)
+#            score = iou+acc/2
+#            if score>bestScore
+#                history['train']['']
+#                checkpoint(nets, history, cfg, 'bestScore')
         # checkpointing
         checkpoint(nets, history, cfg, epoch+1)
     print('Training Done!')
@@ -287,8 +287,8 @@ if __name__ == '__main__':
             cfg.DIR, 'history_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
         assert os.path.exists(cfg.MODEL.weights_encoder) and \
             os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exist!"
-        if os.path.exists(cfg.MODEL.history)
-            try:
+       # if os.path.exists(cfg.MODEL.history):
+       #     try:
 
     # Parse gpu ids
     gpus = parse_devices(args.gpus)

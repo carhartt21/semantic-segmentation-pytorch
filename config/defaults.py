@@ -70,12 +70,14 @@ _C.TRAIN.deep_sup_scale = 0.4
 _C.TRAIN.fix_bn = False
 # number of data loading workers
 _C.TRAIN.workers = 16
-
 # frequency to display
 _C.TRAIN.disp_iter = 20
 # manual seed
 _C.TRAIN.seed = 304
-
+# use validation during training 
+_C.TRAIN.eval = False
+# best score from previous Training
+_C.TRAIN.bestScore = 0
 # -----------------------------------------------------------------------------
 # Validation
 # -----------------------------------------------------------------------------

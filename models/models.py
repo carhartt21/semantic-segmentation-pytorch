@@ -11,6 +11,8 @@ class SegmentationModuleBase(nn.Module):
         super(SegmentationModuleBase, self).__init__()
 
     def pixel_acc(self, pred, label):
+        if type(pred) is list:
+           pred = pred[-1]
         _, preds = torch.max(pred, dim=1)
         valid = (label >= 0).long()
         acc_sum = torch.sum(valid * (preds == label).long())
