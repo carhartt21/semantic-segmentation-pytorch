@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import csv
+import logging
 # Our libs
 from dataset import TestDataset
 from models import ModelBuilder, SegmentationModule
@@ -17,6 +18,7 @@ from lib.utils import as_numpy
 from PIL import Image
 from tqdm import tqdm
 from config import cfg
+from modelsummary import get_model_summary
 
 
 def visualize_result(data, pred, cfg):
@@ -123,6 +125,8 @@ def main(cfg, gpu):
         drop_last=True)
 
     segmentation_module.cuda()
+
+    get_model_summary(segmentation_module.cuda())
 
     # Main loop
     test(segmentation_module, loader_test, gpu)

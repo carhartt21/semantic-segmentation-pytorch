@@ -378,60 +378,37 @@ class C1DeepSup(nn.Module):
 class OCR(nn.Module):
     def __init__(self, num_class=150, fc_dim=2048, use_softmax=False):
         super(OCR, self).__init__()
-        OCR_params = {
-            'MID_CHANNELS': 512,
-            'KEY_CHANNELS': 256,
-            'DROPOUT': 0.05,
-            'SCALE': 1
-            }
-        self.use_softmax = use_softmax
+        OCR_params = {'MID_CHANNELS': 512, 'KEY_CHANNELS': 256, 'DROPOUT': 0.05,'SCALE': 1}
+        self.useSoftmax = use_softmax
         ocr_mid_channels = OCR_params['MID_CHANNELS']
         ocr_key_channels = OCR_params['KEY_CHANNELS']
 
-        self.conv3x3_ocr = nn.Sequential(
-            nn.Conv2d(fc_dim, ocr_mid_channels,
-                      kernel_size=3, stride=1, padding=1),
-            BatchNorm2d(ocr_mid_channels),
-            nn.ReLU(inplace=True)
-            )
-        self.ocr_gather_head = ocr.SpatialGather_Module(num_class)
-
-        self.ocr_distri_head = ocr.SpatialOCR_Module(in_channels=ocr_mid_channels,
-                                                 key_channels=ocr_key_channels,
-                                                 out_channels=ocr_mid_channels,
-                                                 scale=1,
-                                                 dropout=0.05)
-        self.cls_head = nn.Conv2d(
-            ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
-
-        self.aux_head = nn.Sequential(
-            nn.Conv2d(fc_dim, fc_dim // 4,
-                      kernel_size=1, stride=1, padding=0),
-            BatchNorm2d(fc_dim // 4),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True)
-        )
+        self.auxBlock = nn.Sequential(nn.Conv2d(fc_dim, fc_dim // 4, kernel_size=1, stride=1, padding=0), BatchNorm2d(fc_dim // 4),
+            nn.ReLU(inplace=True), nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True))
+        self.ocr3x3Conv = nn.Sequential(nn.Conv2d(fc_dim, ocr_mid_channels, kernel_size=3, stride=1, padding=1), BatchNorm2d(ocr_mid_channels),nn.ReLU(inplace=True))
+        self.ocrGather = ocr.SpatialGather(num_class)
+        self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale=1, dropout=0.05)
+        self.classPred = nn.Conv2d(ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
 
     def forward(self, conv_out, segSize=None):
         out_aux_seg = []
         feats = conv_out[-1]
-        if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
-            feats = nn.functional.interpolate(
-                feats, size=segSize, mode='bilinear', align_corners=False)
         # ocr
-        out_aux = self.aux_head(feats)
-        # compute contrast feature
-        feats = self.conv3x3_ocr(feats)
+        out_aux = self.auxBlock(feats)
+        # contrast feature
+        feats = self.ocr3x3Conv(feats)
+        context = self.ocrGather(feats, out_aux)
+        feats = self.ocrBlock(feats, context)
 
-        context = self.ocr_gather_head(feats, out_aux)
-        feats = self.ocr_distri_head(feats, context)
-
-        out = self.cls_head(feats)
+        out = self.classPred(feats)
         # out_aux_seg.append(out_aux)
         # out_aux_seg.append(out)
-        if self.use_softmax: # is True during inference
-            out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
-            out = nn.functional.softmax(out, dim=1)
+        if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
+            feats = nn.functional.interpolate(
+            feats, size=segSize, mode='bilinear', align_corners=False)
+        # if self.use_softmax: # is True during inference
+        #     out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+        #     out = nn.functional.softmax(out, dim=1)
         return out
 
 

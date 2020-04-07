@@ -24,14 +24,14 @@ class ModuleHelper:
         return BatchNorm2d
 
 
-class SpatialGather_Module(nn.Module):
+class SpatialGather(nn.Module):
     """
         Aggregate the context features according to the initial
         predicted probability distribution.
         Employ the soft-weighted method to aggregate the context.
     """
     def __init__(self, cls_num=0, scale=1):
-        super(SpatialGather_Module, self).__init__()
+        super(SpatialGather, self).__init__()
         self.cls_num = cls_num
         self.scale = scale
 
@@ -133,7 +133,7 @@ class ObjectAttentionBlock2D(_ObjectAttentionBlock):
                                                      bn_type=bn_type)
 
 
-class SpatialOCR_Module(nn.Module):
+class SpatialOCR(nn.Module):
     """
     Implementation of the OCR module:
     We aggregate the global object representation to update the representation for each pixel.
@@ -145,7 +145,7 @@ class SpatialOCR_Module(nn.Module):
                  scale=1,
                  dropout=0.1,
                  bn_type=None):
-        super(SpatialOCR_Module, self).__init__()
+        super(SpatialOCR, self).__init__()
         self.object_context_block = ObjectAttentionBlock2D(in_channels,
                                                            key_channels,
                                                            scale,
