@@ -101,6 +101,7 @@ def evaluate(segmentation_module, loader, cfg, gpu):
     print('[Eval Summary]:')
     print('Mean IoU: {:.4f}, Accuracy: {:.2f}%, Inference Time: {:.4f}s'
           .format(iou.mean(), acc_meter.average()*100, time_meter.average()))
+    return iou.mean, acc_meter.average()*100
 
 
 def main(cfg, gpu):

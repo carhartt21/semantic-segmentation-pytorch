@@ -17,13 +17,25 @@ import torch
 import torch.nn as nn
 
 def get_model_summary(model, *input_tensors, item_length=26, verbose=False):
-    """
-    :param model:
-    :param input_tensors:
-    :param item_length:
-    :return:
-    """
+    """Generates a summary of the complete model.
 
+    Parameters
+    ----------
+    model : torch model
+        model to evaluate
+    *input_tensors : torch tensor
+        data to pass through the model.
+    item_length : type
+        length of output items
+    verbose : bool
+        Description of parameter `verbose`.
+
+    Returns
+    -------
+    str
+        Model information as formatted string.
+
+    """
     summary = []
 
     ModuleDetails = namedtuple(

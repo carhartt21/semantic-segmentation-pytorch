@@ -12,7 +12,7 @@ import torch.backends.cudnn as cudnn
 
 # Our libs
 from config import cfg
-from dataset import TrainDataset
+from dataset import TrainDataset, ValDataset
 from models import ModelBuilder, SegmentationModule
 from utils import AverageMeter, parse_devices, setup_logger, CrossEntropy
 from eval import evaluate
@@ -203,7 +203,7 @@ def main(cfg, gpus):
             collate_fn=user_scattered_collate,
             num_workers=5,
             drop_last=True)
-        iterator_train = iter(loader_val)
+        iterator_val = iter(loader_val)
 
     # load nets into gpu
     if len(gpus) > 1:
@@ -219,16 +219,17 @@ def main(cfg, gpus):
     optimizers = create_optimizers(nets, cfg)
 
     # Main loop
-    history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'lastScore': 0, 'bestScore': 0}}
-    bestScore = cfg.TRAIN.bestScore
+    history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'lastScore': 0, 'bestScore': cfg.TRAIN.best_score}}
     for epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch):
         train(segmentation_module, iterator_train, optimizers, history, epoch+1, cfg)
-#        if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=5):
-#            iou, acc = evaluate(segmentation_module, loader_val, cfg, gpus)
-#            score = iou+acc/2
-#            if score>bestScore
-#                history['train']['']
-#                checkpoint(nets, history, cfg, 'bestScore')
+        # calculate segmentation score
+        if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=cfg.TRAIN.eval_step):
+            iou, acc = evaluate(segmentation_module, iterator_val, cfg, gpus)
+            history['train']['lastScore'] = (iou+acc)/2
+            if history['train']['lastScore'] > history['train']['bestScore']:
+               history['train']['bestScore'] = history['train']['lastScore']
+               checkpoint(nets, history, cfg, 'best_score')
+             = score
         # checkpointing
         checkpoint(nets, history, cfg, epoch+1)
     print('Training Done!')
@@ -266,7 +267,7 @@ if __name__ == '__main__':
     cfg.merge_from_list(args.opts)
     # cfg.freeze()
 
-    logger = setup_logger(distributed_rank=0)   # TODO
+    logger = setup_logger(distributed_rank=0)
     logger.info("Loaded configuration file {}".format(args.cfg))
     logger.info("Running with config:\n{}".format(cfg))
 
@@ -287,9 +288,12 @@ if __name__ == '__main__':
             cfg.DIR, 'history_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
         assert os.path.exists(cfg.MODEL.weights_encoder) and \
             os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exist!"
-       # if os.path.exists(cfg.MODEL.history):
-       #     try:
-
+        if os.path.exists(cfg.MODEL.history):
+            try:
+                hist = torch.load(cfg.MODEL.history)
+                cfg.TRAIN.best_score = hist['train']['best_score']
+            except ValueError:
+                print('No previous score in history file')
     # Parse gpu ids
     gpus = parse_devices(args.gpus)
     gpus = [x.replace('gpu', '') for x in gpus]

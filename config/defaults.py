@@ -74,10 +74,12 @@ _C.TRAIN.workers = 16
 _C.TRAIN.disp_iter = 20
 # manual seed
 _C.TRAIN.seed = 304
-# use validation during training 
+# use validation during training
 _C.TRAIN.eval = False
+# step size for validation calculation
+_C.TRAIN.eval_step = 5
 # best score from previous Training
-_C.TRAIN.bestScore = 0
+_C.TRAIN.best_score = 0
 # -----------------------------------------------------------------------------
 # Validation
 # -----------------------------------------------------------------------------
