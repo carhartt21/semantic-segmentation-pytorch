@@ -401,13 +401,13 @@ class OCR(nn.Module):
         feats = self.ocr3x3Conv(feats)
         context = self.ocrGather(feats, out_aux)
         feats = self.ocrBlock(feats, context)
-
+        # check when to perform interpolation
+        if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
+            feats = nn.functional.interpolate(feats, size=segSize, mode='bilinear', align_corners=False)
         out = self.classPred(feats)
         out_aux_seg = []
         out_aux_seg.append(out_aux)
         out_aux_seg.append(out)
-        if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
-            feats = nn.functional.interpolate(feats, size=segSize, mode='bilinear', align_corners=False)
         if self.training: # is True during inference
             return out_aux_seg
         else:

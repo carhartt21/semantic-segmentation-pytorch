@@ -73,7 +73,6 @@ def test(segmentation_module, loader, gpu):
                 del feed_dict['img_ori']
                 del feed_dict['info']
                 feed_dict = async_copy_to(feed_dict, gpu)
-
                 # forward pass
                 pred_tmp = segmentation_module(feed_dict, segSize=segSize)
                 scores += pred_tmp / len(cfg.DATASET.imgSizes)
