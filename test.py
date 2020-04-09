@@ -79,14 +79,8 @@ def test(segmentation_module, loader, gpu):
             _, pred = torch.max(scores, dim=1)
             pred = as_numpy(pred.squeeze(0).cpu())
             #print(pred)
-
         # visualization
-        visualize_result(
-            (batch_data['img_ori'], batch_data['info']),
-            pred,
-            cfg
-        )
-
+        visualize_result((batch_data['img_ori'], batch_data['info']),pred,cfg)
         pbar.update(1)
 
 
@@ -124,8 +118,9 @@ def main(cfg, gpu):
 
     segmentation_module.cuda()
 
-    dump_input = torch.rand((1, 3, 1200, 600)
-    get_model_summary(segmentation_module.cuda(), verbose=True)
+    dump_input = torch.rand((1, 3, 1920, 1080))    
+    with open ('dump_model.txt', 'w') as file:
+         file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
 
     # Main loop
     test(segmentation_module, loader_test, gpu)

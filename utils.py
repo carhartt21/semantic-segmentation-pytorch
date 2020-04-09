@@ -213,7 +213,7 @@ class CrossEntropy(nn.Module):
         ph, pw = score.size(2), score.size(3)
         h, w = target.size(1), target.size(2)
         if ph != h or pw != w:
-            score = nn.functional.interpolate(input=score, size=(h, w), mode='bilinear', align_corners=config.MODEL.ALIGN_CORNERS)
+            score = nn.functional.interpolate(input=score, size=(h, w), mode='bilinear', align_corners=False)
         loss = self.criterion(score, target)
         return loss
     def forward(self, score, target):

@@ -15,8 +15,9 @@ from collections import namedtuple
 
 import torch
 import torch.nn as nn
+from lib.nn import async_copy_to
 
-def get_model_summary(model, *input_tensors, item_length=26, verbose=False):
+def get_model_summary(model, input_tensors, item_length=26, verbose=False):
     """Generates a summary of the complete model.
 
     Parameters
@@ -93,13 +94,15 @@ def get_model_summary(model, *input_tensors, item_length=26, verbose=False):
            and not isinstance(module, nn.Sequential) \
            and module != model:
             hooks.append(module.register_forward_hook(hook))
-
     model.eval()
     model.apply(add_hooks)
-
     space_len = item_length
-
-    model(*input_tensors)
+    feed_dict=dict()
+    feed_dict['img_data'] = input_tensors
+    feed_dict['seg_label'] = torch.rand(1,1200,600)
+    feed_dict = async_copy_to(feed_dict, 0)
+    segSize = (input_tensors.shape[2], input_tensors.shape[3])
+    model(feed_dict, segSize=segSize)
     for hook in hooks:
         hook.remove()
 

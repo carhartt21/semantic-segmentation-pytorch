@@ -100,7 +100,7 @@
 {"fpath_img":"map20k/images/validation/mapillary/IAw8mFmLSerU1TxD9oM3Mw.jpg","fpath_segm":"map20k/labels/validation/mapillary/IAw8mFmLSerU1TxD9oM3Mw.png","width":3264,"height":2448},
 {"fpath_img":"map20k/images/validation/mapillary/YQonW9awgLsEX5RAgShLQg.jpg","fpath_segm":"map20k/labels/validation/mapillary/YQonW9awgLsEX5RAgShLQg.png","width":3264,"height":2448},
 {"fpath_img":"map20k/images/validation/mapillary/7Y2EDQH4E9SPLX6Zds_0sw.jpg","fpath_segm":"map20k/labels/validation/mapillary/7Y2EDQH4E9SPLX6Zds_0sw.png","width":2012,"height":1341},
-[{"fpath_img":"map20k/images/validation/ADE20k/ADE_val_00000556.jpg","fpath_segm":"map20k/labels/validation/ADE20k/ADE_val_00000556.png","width":683,"height":512},
+{"fpath_img":"map20k/images/validation/ADE20k/ADE_val_00000556.jpg","fpath_segm":"map20k/labels/validation/ADE20k/ADE_val_00000556.png","width":683,"height":512},
 {"fpath_img":"map20k/images/validation/mapillary/W8s161J2vJd2_kw9kzl_5g.jpg","fpath_segm":"map20k/labels/validation/mapillary/W8s161J2vJd2_kw9kzl_5g.png","width":3264,"height":2448},
 {"fpath_img":"map20k/images/validation/mapillary/6ATF7pfLoBN0zYbcWKTNOw.jpg","fpath_segm":"map20k/labels/validation/mapillary/6ATF7pfLoBN0zYbcWKTNOw.png","width":4608,"height":2592},
 {"fpath_img":"map20k/images/validation/mapillary/q4M54POWdA0aQqU5iWxXVQ.jpg","fpath_segm":"map20k/labels/validation/mapillary/q4M54POWdA0aQqU5iWxXVQ.png","width":3264,"height":2448},
@@ -197,4 +197,5 @@
 {"fpath_img":"map20k/images/validation/mapillary/6NdAt8jUKb82E1DWPMBiew.jpg","fpath_segm":"map20k/labels/validation/mapillary/6NdAt8jUKb82E1DWPMBiew.png","width":1600,"height":1184},
 {"fpath_img":"map20k/images/validation/mapillary/NhaBrQMYCLxktWdLc-1nYA.jpg","fpath_segm":"map20k/labels/validation/mapillary/NhaBrQMYCLxktWdLc-1nYA.png","width":3264,"height":2448},
 {"fpath_img":"map20k/images/validation/mapillary/IrZFUnMCato-Y-nCxNzHaA.jpg","fpath_segm":"map20k/labels/validation/mapillary/IrZFUnMCato-Y-nCxNzHaA.png","width":3264,"height":2448},
-{"fpath_img":"map20k/images/validation/mapillary/EOYH5ULSWbrO30m265lF8Q.jpg","fpath_segm":"map20k/labels/validation/mapillary/EOYH5ULSWbrO30m265lF8Q.png","width":3264,"height":1836}]
+{"fpath_img":"map20k/images/validation/mapillary/EOYH5ULSWbrO30m265lF8Q.jpg","fpath_segm":"map20k/labels/validation/mapillary/EOYH5ULSWbrO30m265lF8Q.png","width":3264,"height":1836}
+]

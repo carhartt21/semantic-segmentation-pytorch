@@ -67,7 +67,7 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
                           batch_time.average(), data_time.average(),
                           cfg.TRAIN.running_lr_encoder, cfg.TRAIN.running_lr_decoder,
                           ave_acc.average(), ave_total_loss.average(),
-                          history['train']['lastScore'], history['train']['bestScore']))
+                          history['train']['last_score'], history['train']['best_score']))
 
             fractional_epoch = epoch - 1 + 1. * i / cfg.TRAIN.epoch_iters
             history['train']['epoch'].append(fractional_epoch)
@@ -219,17 +219,16 @@ def main(cfg, gpus):
     optimizers = create_optimizers(nets, cfg)
 
     # Main loop
-    history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'lastScore': 0, 'bestScore': cfg.TRAIN.best_score}}
+    history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'last_score': 0, 'best_score': cfg.TRAIN.best_score}}
     for epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch):
         train(segmentation_module, iterator_train, optimizers, history, epoch+1, cfg)
         # calculate segmentation score
         if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=cfg.TRAIN.eval_step):
             iou, acc = evaluate(segmentation_module, iterator_val, cfg, gpus)
-            history['train']['lastScore'] = (iou+acc)/2
-            if history['train']['lastScore'] > history['train']['bestScore']:
-               history['train']['bestScore'] = history['train']['lastScore']
+            history['train']['last_score'] = (iou+acc)/2
+            if history['train']['last_score'] > history['train']['best_score']:
+               history['train']['best_score'] = history['train']['last_score']
                checkpoint(nets, history, cfg, 'best_score')
-             = score
         # checkpointing
         checkpoint(nets, history, cfg, epoch+1)
     print('Training Done!')
@@ -292,7 +291,7 @@ if __name__ == '__main__':
             try:
                 hist = torch.load(cfg.MODEL.history)
                 cfg.TRAIN.best_score = hist['train']['best_score']
-            except ValueError:
+            except KeyError:
                 print('No previous score in history file')
     # Parse gpu ids
     gpus = parse_devices(args.gpus)

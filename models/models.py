@@ -44,7 +44,6 @@ class SegmentationModule(SegmentationModuleBase):
                 (pred, pred_deepsup) = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True))
             else:
                 pred = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True))
-            print(pred)
             loss = self.crit(pred, feed_dict['seg_label'])
             if self.deep_sup_scale is not None:
                 loss_deepsup = self.crit(pred_deepsup, feed_dict['seg_label'])
@@ -398,6 +397,7 @@ class OCR(nn.Module):
         # ocr
         out_aux = self.auxBlock(feats)
         # contrast feature
+
         feats = self.ocr3x3Conv(feats)
         context = self.ocrGather(feats, out_aux)
         feats = self.ocrBlock(feats, context)
@@ -411,7 +411,6 @@ class OCR(nn.Module):
         if self.training: # is True during inference
             return out_aux_seg
         else:
-            out = out.exp()
             return out
 
 
