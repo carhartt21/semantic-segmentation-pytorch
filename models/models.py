@@ -335,7 +335,6 @@ class MobileNetV2Dilated(nn.Module):
                     conv_out.append(x)
             conv_out.append(x)
             return conv_out
-
         else:
             return [self.features(x)]
 
@@ -378,7 +377,7 @@ class C1DeepSup(nn.Module):
 
 # OCR
 class OCR(nn.Module):
-    def __init__(self, num_class=150, fc_dim=2048, use_softmax=False):
+    def __init__(self, num_class=43, fc_dim=720, use_softmax=False):
         super(OCR, self).__init__()
         OCR_params = {'MID_CHANNELS': 512, 'KEY_CHANNELS': 256, 'DROPOUT': 0.05,'SCALE': 1}
         self.useSoftmax = use_softmax
@@ -388,14 +387,20 @@ class OCR(nn.Module):
         self.auxBlock = nn.Sequential(nn.Conv2d(fc_dim, fc_dim // 4, kernel_size=1, stride=1, padding=0), BatchNorm2d(fc_dim // 4),
             nn.ReLU(inplace=True), nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True))
         self.ocr3x3Conv = conv3x3_bn_relu(fc_dim, ocr_mid_channels, bias=True)
+<<<<<<< HEAD
         self.ocrGather = ocr.SpaialGather(num_class)
         self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale= OCR_params['SCALE'], dropout=OCR_params['DROPOUT'])
+=======
+        self.ocrGather = ocr.SpatialGather(num_class)
+        self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale=1, dropout=0.05)
+>>>>>>> ae754401ad8d09a89ca90ccb7034b048ac3da0a9
         self.classPred = nn.Conv2d(ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
 
     def forward(self, conv_out, segSize=None):
         feats = conv_out[-1]
         # compute intermediate results
         out_aux = self.auxBlock(feats)
+<<<<<<< HEAD
         # compute contrast features
         feats = self.ocr3x3Conv(feats)
         context = self.ocrGather(feats, out_aux)
@@ -403,7 +408,16 @@ class OCR(nn.Module):
         # check when to perform interpolation
         if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
             out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+=======
+        # contrast feature
+        feats = self.ocr3x3Conv(feats)
+        context = self.ocrGather(feats, out_aux)
+        feats = self.ocrBlock(feats, context)
+>>>>>>> ae754401ad8d09a89ca90ccb7034b048ac3da0a9
         out = self.classPred(feats)
+        if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
+            out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+            out = nn.functional.softmax(out, dim=1)
         out_aux_seg = []
         if self.training: # is True during inference
             out_aux_seg.append(out_aux)
@@ -428,14 +442,14 @@ class C1(nn.Module):
         conv5 = conv_out[-1]
         x = self.cbr(conv5)
         x = self.conv_last(x)
-
+        print(x.shape,x[:,:,1,1])
         if self.use_softmax: # is True during inference
             x = nn.functional.interpolate(
                 x, size=segSize, mode='bilinear', align_corners=False)
             x = nn.functional.softmax(x, dim=1)
         else:
             x = nn.functional.log_softmax(x, dim=1)
-
+        print(x.shape,x[:,:,1,1])
         return x
 
 

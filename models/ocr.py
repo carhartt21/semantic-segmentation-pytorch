@@ -104,7 +104,11 @@ class _ObjectAttentionBlock(nn.Module):
         batch_size, h, w = x.size(0), x.size(2), x.size(3)
         if self.scale > 1:
             x = self.pool(x)
+<<<<<<< HEAD
         query = self.f_pixel(x).view(batch_size, self.key_channels, -1) # ψ(X)
+=======
+        query = self.f_pixel(x).view(batch_size, self.key_channels, -1)
+>>>>>>> ae754401ad8d09a89ca90ccb7034b048ac3da0a9
         query = query.permute(0, 2, 1)
         key = self.f_object(proxy).view(batch_size, self.key_channels, -1) # ϕ(fk)
         value = self.f_down(proxy).view(batch_size, self.key_channels, -1) # δ(fk)
