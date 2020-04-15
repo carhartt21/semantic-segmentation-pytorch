@@ -118,9 +118,9 @@ def main(cfg, gpu):
 
     segmentation_module.cuda()
 
-    dump_input = torch.rand((1, 3, 1920, 1080))    
-    with open ('dump_model.txt', 'w') as file:
-         file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
+#    dump_input = torch.rand((1, 3, 1920, 1080))    
+#    with open ('dump_model_2.txt', 'w') as file:
+#         file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
 
     # Main loop
     test(segmentation_module, loader_test, gpu)
