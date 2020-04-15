@@ -4,6 +4,7 @@ import argparse
 import os
 import json
 import multiprocessing as mp
+from scipy.io import loadmat
 from timeit import default_timer as timer
 from tqdm import tqdm
 from pathlib import Path
@@ -27,8 +28,9 @@ def remapImageMat(img):
     if args.dataset == 'ADE':
         imgData = imgData[:,:,0]*256/10+imgData[:,:,1]
         uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
-    else:
-        uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
+    elif args.dataset == 'PASCAL':
+        imgData = np.delete(imgData,3,2)
+        uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
     grayImage = np.zeros((imgData.shape[0], imgData.shape[1]),dtype='uint8')
     imgName = img.split('/')[-1]
     # Check if file exists already in the output path
@@ -146,6 +148,8 @@ if __name__ == '__main__':
             mapNames = json.load(mfile)
     elif args.dataset == 'ADE20K':
         nameMappingFile = Path('data/ADEMap.json')
+    elif args.dataset == 'PASCAL':
+        nameMappingFile = Path('data/PASCALMap.json')
     with open(nameMappingFile) as mfile:
         mapNames = json.load(mfile)
     elif args.dataset == 'ADE20K':
@@ -157,7 +161,7 @@ if __name__ == '__main__':
     # Generate image list
     if os.path.isdir(args.input):
         print(args.input)
-        imgs = find_recursive(args.input, ext='.png')
+        imgs = find_recursive(args.input, ext='.mat')
     else:
         imgs = [args.input]
     assert len(imgs), "Exception: imgs should be a path to image (.jpg) or directory."

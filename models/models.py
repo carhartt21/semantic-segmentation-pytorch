@@ -174,11 +174,11 @@ class ModelBuilder:
         return net_decoder
 
 
-def conv3x3_bn_relu(in_planes, out_planes, stride=1):
+def conv3x3_bn_relu(in_planes, out_planes, stride=1, bias=False):
     "3x3 convolution + BN + relu"
     return nn.Sequential(
             nn.Conv2d(in_planes, out_planes, kernel_size=3,
-                      stride=stride, padding=1, bias=False),
+                      stride=stride, padding=1, bias=bias),
             BatchNorm2d(out_planes),
             nn.ReLU(inplace=True),
             )
@@ -387,28 +387,27 @@ class OCR(nn.Module):
 
         self.auxBlock = nn.Sequential(nn.Conv2d(fc_dim, fc_dim // 4, kernel_size=1, stride=1, padding=0), BatchNorm2d(fc_dim // 4),
             nn.ReLU(inplace=True), nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True))
-        self.ocr3x3Conv = conv3x3_bn_relu(fc_dim, ocr_mid_channels)
-        self.ocrGather = ocr.SpatialGather(num_class)
-        self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale=1, dropout=0.05)
+        self.ocr3x3Conv = conv3x3_bn_relu(fc_dim, ocr_mid_channels, bias=True)
+        self.ocrGather = ocr.SpaialGather(num_class)
+        self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale= OCR_params['SCALE'], dropout=OCR_params['DROPOUT'])
         self.classPred = nn.Conv2d(ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
 
     def forward(self, conv_out, segSize=None):
         feats = conv_out[-1]
-        # ocr
+        # compute intermediate results
         out_aux = self.auxBlock(feats)
-        # contrast feature
-
+        # compute contrast features
         feats = self.ocr3x3Conv(feats)
         context = self.ocrGather(feats, out_aux)
         feats = self.ocrBlock(feats, context)
         # check when to perform interpolation
-        if segSize and (feats.size()[-2] != segSize[0] or feats.size()[-1] != segSize[1]):
-            feats = nn.functional.interpolate(feats, size=segSize, mode='bilinear', align_corners=False)
+        if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
+            out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
         out = self.classPred(feats)
         out_aux_seg = []
-        out_aux_seg.append(out_aux)
-        out_aux_seg.append(out)
         if self.training: # is True during inference
+            out_aux_seg.append(out_aux)
+            out_aux_seg.append(out)
             return out_aux_seg
         else:
             return out
