@@ -85,6 +85,9 @@ class TrainDataset(BaseDataset):
         self.cur_idx = 0
         self.if_shuffled = False
 
+        self.rand_flip = True
+        self.rand_crop = False
+
     def _get_sub_batch(self):
         while True:
             # get a sample record
@@ -145,11 +148,9 @@ class TrainDataset(BaseDataset):
         batch_height = int(self.round2nearest_multiple(batch_height, self.padding_constant))
 
         assert self.padding_constant >= self.segm_downsampling_rate, \
-            'padding constant must be equal or large than segm downsamping rate'
-        batch_images = torch.zeros(
-            self.batch_per_gpu, 3, batch_height, batch_width)
-        batch_segms = torch.zeros(
-            self.batch_per_gpu,
+            'padding constant must be equal or large than segm downsampling rate'
+        batch_images = torch.zeros(self.batch_per_gpu, 3, batch_height, batch_width)
+        batch_segms = torch.zeros(self.batch_per_gpu,
             batch_height // self.segm_downsampling_rate,
             batch_width // self.segm_downsampling_rate).long()
 
@@ -170,6 +171,13 @@ class TrainDataset(BaseDataset):
             if np.random.choice([0, 1]):
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
+
+            # random_crop
+            if img.size[0] > batch.height*2 or img.size[1] > batch.width*2 and np.random.choice([0, 1]):
+                top = np.random.randint(0, h - batch.height)
+                left = np.random.randint(0, w - batch.width)
+                img = img[top: top + batch.height, left: left + batch.width]
+                segm = segm[top: top + batch.height, left: left + batch.width]
 
             # note that each sample within a mini batch has different scale param
             img = imresize(img, (batch_widths[i], batch_heights[i]), interp='bilinear')

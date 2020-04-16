@@ -48,7 +48,6 @@ class SegmentationModule(SegmentationModuleBase):
             if self.deep_sup_scale is not None:
                 loss_deepsup = self.crit(pred_deepsup, feed_dict['seg_label'])
                 loss = loss + loss_deepsup * self.deep_sup_scale
-
             acc = self.pixel_acc(pred, feed_dict['seg_label'])
             return loss, acc
         # inference

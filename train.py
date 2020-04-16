@@ -207,8 +207,7 @@ def main(cfg, gpus):
 
     # load nets into gpu
     if len(gpus) > 1:
-        segmentation_module = UserScatteredDataParallel(
-            segmentation_module,
+        segmentation_module = UserScatteredDataParallel(segmentation_module,
             device_ids=gpus)
         # For sync bn
         patch_replication_callback(segmentation_module)
@@ -225,7 +224,7 @@ def main(cfg, gpus):
         # calculate segmentation score
         if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=cfg.TRAIN.eval_step):
             iou, acc = evaluate(segmentation_module, iterator_val, cfg, gpus)
-            history['train']['last_score'] = (iou+acc)/2
+            history['train']['last_score'] = (iou + acc)/2
             if history['train']['last_score'] > history['train']['best_score']:
                history['train']['best_score'] = history['train']['last_score']
                checkpoint(nets, history, cfg, 'best_score')

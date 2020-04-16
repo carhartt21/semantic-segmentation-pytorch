@@ -202,12 +202,22 @@ def parse_devices(input_devices):
                 'Can not recognize device: "{}"'.format(d))
     return ret
 
+def create_spatial_mask(size, shape=(3,3)):
+    h, w = size
+    mask = np.zeros((h, w, 1))
+    h_b, w_b = (math.ceil(h/shape[0]),math.ceil(h/shape[1]))
+    val = 0
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            mask[i*h_b:(i+1)*h_b, j*w_b:(j+1)*w_b] = val
+            val += 1
+    return mask
+
 class CrossEntropy(nn.Module):
     def __init__(self, ignore_label=-1, weight=None):
         super(CrossEntropy, self).__init__()
         self.ignore_label = ignore_label
-        self.criterion = nn.CrossEntropyLoss(weight=weight,ignore_index=ignore_label
-        )
+        self.criterion = nn.CrossEntropyLoss(weight=weight,ignore_index=ignore_label)
 
     def _forward(self, score, target):
         ph, pw = score.size(2), score.size(3)
@@ -216,8 +226,8 @@ class CrossEntropy(nn.Module):
             score = nn.functional.interpolate(input=score, size=(h, w), mode='bilinear', align_corners=False)
         loss = self.criterion(score, target)
         return loss
+
     def forward(self, score, target):
         weights = [0.4, 1]
         assert len(weights) == len(score)
-
         return sum([w * self._forward(x, target) for (w, x) in zip(weights, score)])
