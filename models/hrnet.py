@@ -304,7 +304,6 @@ class HRNetV2(nn.Module):
             pre_stage_channels, num_channels)
         self.stage4, pre_stage_channels = self._make_stage(
             self.stage4_cfg, num_channels, multi_scale_output=True)
-        print('Stage 4 pre_stage_channels:{}'.format(pre_stage_channels))
 
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):

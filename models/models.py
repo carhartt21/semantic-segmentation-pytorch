@@ -398,17 +398,18 @@ class OCR(nn.Module):
         # contrast feature
         feats = self.ocr3x3Conv(feats)
         context = self.ocrGather(feats, out_aux)
-        feats = self.ocrBlock(feats, context)
+        #feats = self.ocrBlock(feats, context)
         out = self.classPred(feats)
-        if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
-            out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
-            out = nn.functional.softmax(out, dim=1)
-        out_aux_seg = []
-        out_aux_seg.append(out_aux)
-        out_aux_seg.append(out)
-        if self.training: # is True during inference
+        out = out_aux
+        if self.training:
+            out_aux_seg = []
+            out_aux_seg.append(out_aux)
+            out_aux_seg.append(out)
             return out_aux_seg
         else:
+            if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
+                out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+                out = nn.functional.softmax(out, dim=1)
             return out
 
 
