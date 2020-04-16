@@ -69,6 +69,7 @@ class _ObjectAttentionBlock(nn.Module):
         self.in_channels = in_channels
         self.key_channels = key_channels
         self.pool = nn.MaxPool2d(kernel_size=(scale, scale))
+        # function ψ
         self.f_pixel = nn.Sequential(
             nn.Conv2d(in_channels=self.in_channels, out_channels=self.key_channels,
                 kernel_size=1, stride=1, padding=0, bias=False),
@@ -77,6 +78,7 @@ class _ObjectAttentionBlock(nn.Module):
                 kernel_size=1, stride=1, padding=0, bias=False),
             ModuleHelper.BNReLU(self.key_channels, bn_type=bn_type),
         )
+        # function ϕ
         self.f_object = nn.Sequential(
             nn.Conv2d(in_channels=self.in_channels, out_channels=self.key_channels,
                 kernel_size=1, stride=1, padding=0, bias=False),
@@ -85,11 +87,13 @@ class _ObjectAttentionBlock(nn.Module):
                 kernel_size=1, stride=1, padding=0, bias=False),
             ModuleHelper.BNReLU(self.key_channels, bn_type=bn_type),
         )
+        # function δ
         self.f_down = nn.Sequential(
             nn.Conv2d(in_channels=self.in_channels, out_channels=self.key_channels,
                 kernel_size=1, stride=1, padding=0, bias=False),
             ModuleHelper.BNReLU(self.key_channels, bn_type=bn_type),
         )
+        # function ρ
         self.f_up = nn.Sequential(
             nn.Conv2d(in_channels=self.key_channels, out_channels=self.in_channels,
                 kernel_size=1, stride=1, padding=0, bias=False),
@@ -100,24 +104,20 @@ class _ObjectAttentionBlock(nn.Module):
         batch_size, h, w = x.size(0), x.size(2), x.size(3)
         if self.scale > 1:
             x = self.pool(x)
-        query = self.f_pixel(x).view(batch_size, self.key_channels, -1)
+        query = self.f_pixel(x).view(batch_size, self.key_channels, -1) # ψ(X)
         query = query.permute(0, 2, 1)
-        key = self.f_object(proxy).view(batch_size, self.key_channels, -1)
-        value = self.f_down(proxy).view(batch_size, self.key_channels, -1)
+        key = self.f_object(proxy).view(batch_size, self.key_channels, -1) # ϕ(fk)
+        value = self.f_down(proxy).view(batch_size, self.key_channels, -1) # δ(fk)
         value = value.permute(0, 2, 1)
-
-        sim_map = torch.matmul(query, key)
+        sim_map = torch.matmul(query, key) # similarity matrix W
         sim_map = (self.key_channels**-.5) * sim_map
-        sim_map = F.softmax(sim_map, dim=-1)
-
-        # add bg context ...
-        context = torch.matmul(sim_map, value)
+        sim_map = F.softmax(sim_map, dim=-1) # channel softmax normalization
+        context = torch.matmul(sim_map, value) # contextual representation X^o
         context = context.permute(0, 2, 1).contiguous()
         context = context.view(batch_size, self.key_channels, *x.size()[2:])
-        context = self.f_up(context)
+        context = self.f_up(context) # ρ
         if self.scale > 1:
             context = F.interpolate(input=context, size=(h, w), mode='bilinear', align_corners=ALIGN_CORNERS)
-
         return context
 
 class ObjectAttentionBlock2D(_ObjectAttentionBlock):
@@ -151,15 +151,15 @@ class SpatialOCR(nn.Module):
                                                            bn_type)
         _in_channels = 2 * in_channels
 
+        # function g
         self.conv_bn_dropout = nn.Sequential(
             nn.Conv2d(_in_channels, out_channels, kernel_size=1, padding=0, bias=False),
             ModuleHelper.BNReLU(out_channels, bn_type=bn_type),
-            nn.Dropout2d(dropout)
+            nn.Dropout2d(dropout) #randomly zeros out entire channels with probability "dropout"
         )
 
     def forward(self, feats, proxy_feats):
-        context = self.object_context_block(feats, proxy_feats)
-
-        output = self.conv_bn_dropout(torch.cat([context, feats], 1))
+        context = self.object_context_block(feats, proxy_feats) # compute the object contextual representation X^o
+        output = self.conv_bn_dropout(torch.cat([context, feats], 1)) # concatenate X^o and X and apply g
 
         return output

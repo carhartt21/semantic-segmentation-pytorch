@@ -387,22 +387,25 @@ class OCR(nn.Module):
         self.auxBlock = nn.Sequential(nn.Conv2d(fc_dim, fc_dim // 4, kernel_size=1, stride=1, padding=0), BatchNorm2d(fc_dim // 4),
             nn.ReLU(inplace=True), nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True))
         self.ocr3x3Conv = conv3x3_bn_relu(fc_dim, ocr_mid_channels, bias=True)
-        self.ocrGather = ocr.SpatialGather(num_class)
-        self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale=1, dropout=0.05)
+        self.ocrGather = ocr.SpaialGather(num_class)
+        self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale= OCR_params['SCALE'], dropout=OCR_params['DROPOUT'])
         self.classPred = nn.Conv2d(ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
 
     def forward(self, conv_out, segSize=None):
         feats = conv_out[-1]
-        # ocr
+        # compute intermediate results
         out_aux = self.auxBlock(feats)
         # contrast feature
         feats = self.ocr3x3Conv(feats)
         context = self.ocrGather(feats, out_aux)
-        #feats = self.ocrBlock(feats, context)
+        feats = self.ocrBlock(feats, context)
         out = self.classPred(feats)
-        out = out_aux
-        if self.training:
-            out_aux_seg = []
+        #out = out_aux
+        if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
+            out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+            out = nn.functional.softmax(out, dim=1)
+        out_aux_seg = []
+        if self.training: # is True during inference
             out_aux_seg.append(out_aux)
             out_aux_seg.append(out)
             return out_aux_seg

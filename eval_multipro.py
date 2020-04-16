@@ -8,7 +8,6 @@ import numpy as np
 import math
 import torch
 import torch.nn as nn
-from scipy.io import loadmat
 # Our libs
 from config import cfg
 from dataset import ValDataset
@@ -19,10 +18,13 @@ from lib.utils import as_numpy
 from PIL import Image
 from tqdm import tqdm
 
-colors = loadmat('data/color150.mat')['colors']
-
-
 def visualize_result(data, pred, dir_result):
+    colors = []
+    with open(cfg.DATASET.classInfo) as f:
+        clsInfo = json.load(f)
+    for c in clsInfo:
+        colors.append(clsInfo[c]['color'])
+
     (img, seg, info) = data
 
     # segmentation
