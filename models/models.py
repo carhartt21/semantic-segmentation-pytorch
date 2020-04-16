@@ -399,6 +399,7 @@ class OCR(nn.Module):
         context = self.ocrGather(feats, out_aux)
         feats = self.ocrBlock(feats, context)
         out = self.classPred(feats)
+        #out = out_aux
         if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
             out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
             out = nn.functional.softmax(out, dim=1)
@@ -408,6 +409,9 @@ class OCR(nn.Module):
             out_aux_seg.append(out)
             return out_aux_seg
         else:
+            if segSize and (out.size()[-2] != segSize[0] or out.size()[-1] != segSize[1]):
+                out = nn.functional.interpolate(out, size=segSize, mode='bilinear', align_corners=False)
+                out = nn.functional.softmax(out, dim=1)
             return out
 
 

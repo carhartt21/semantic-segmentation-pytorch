@@ -39,7 +39,7 @@ VAL:
   checkpoint: "epoch_50.pth"
 
 TEST:
-  checkpoint: "epoch_50.pth"
+  checkpoint: "epoch_90.pth"
   result: "./"
 
 DIR: "./weights/map20k-hrnetv2-c1/"
