@@ -42,7 +42,6 @@ class BaseDataset(torch.utils.data.Dataset):
         elif isinstance(odgt, str):
             with open(odgt, 'r') as listFile:
                 self.list_sample = json.load(listFile)
-            # self.list_sample = [json.loads(x.rstrip()) for x in open(odgt, 'r')]
 
         if max_sample > 0:
             self.list_sample = self.list_sample[0:max_sample]
@@ -56,6 +55,15 @@ class BaseDataset(torch.utils.data.Dataset):
     def img_transform(self, img):
         # 0-255 to 0-1
         img = np.float32(np.array(img)) / 255.
+        img = img.transpose((2, 0, 1))
+        img = self.normalize(torch.from_numpy(img.copy()))
+        return img
+
+    def img_transform_v2(self, img, mask):
+        # 0-255 to 0-1
+        img = np.float32(np.array(img)) / 255.
+        mask = np.float32(mask) / mask.max()
+        img = np.append(img, mask, axis=2)
         img = img.transpose((2, 0, 1))
         img = self.normalize(torch.from_numpy(img.copy()))
         return img
