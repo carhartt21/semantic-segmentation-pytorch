@@ -181,11 +181,11 @@ class TrainDataset(BaseDataset):
                 segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
 
             # random_crop
-            if img.size[0] > batch.height*2 or img.size[1] > batch.width*2 and np.random.choice([0, 1]):
-                top = np.random.randint(0, h - batch.height)
-                left = np.random.randint(0, w - batch.width)
-                img = img[top: top + batch.height, left: left + batch.width]
-                segm = segm[top: top + batch.height, left: left + batch.width]
+            if max(img.size) > max(batch_height, batch_width)*3 and np.random.choice([0, 1]):
+                top = np.random.randint(0, img.size[0] - batch_height)
+                left = np.random.randint(0, img.size[1] - batch_width)
+                img = img.crop((top, top + batch_height, left, left + batch_width))
+                segm = segm.crop((top, top + batch_height, left, left + batch_width))
 
             # note that each sample within a mini batch has different scale param
             img = imresize(img, (batch_widths[i], batch_heights[i]), interp='bilinear')
