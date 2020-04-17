@@ -42,7 +42,6 @@ class BaseDataset(torch.utils.data.Dataset):
         elif isinstance(odgt, str):
             with open(odgt, 'r') as listFile:
                 self.list_sample = json.load(listFile)
-            # self.list_sample = [json.loads(x.rstrip()) for x in open(odgt, 'r')]
 
         if max_sample > 0:
             self.list_sample = self.list_sample[0:max_sample]
@@ -56,6 +55,15 @@ class BaseDataset(torch.utils.data.Dataset):
     def img_transform(self, img):
         # 0-255 to 0-1
         img = np.float32(np.array(img)) / 255.
+        img = img.transpose((2, 0, 1))
+        img = self.normalize(torch.from_numpy(img.copy()))
+        return img
+
+    def img_transform_v2(self, img, mask):
+        # 0-255 to 0-1
+        img = np.float32(np.array(img)) / 255.
+        mask = np.float32(mask) / mask.max()
+        img = np.append(img, mask, axis=2)
         img = img.transpose((2, 0, 1))
         img = self.normalize(torch.from_numpy(img.copy()))
         return img
@@ -173,11 +181,11 @@ class TrainDataset(BaseDataset):
                 segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
 
             # random_crop
-            if img.size[0] > batch.height*2 or img.size[1] > batch.width*2 and np.random.choice([0, 1]):
-                top = np.random.randint(0, h - batch.height)
-                left = np.random.randint(0, w - batch.width)
-                img = img[top: top + batch.height, left: left + batch.width]
-                segm = segm[top: top + batch.height, left: left + batch.width]
+            if max(img.size) > max(batch_height, batch_width)*3 and np.random.choice([0, 1]):
+                top = np.random.randint(0, img.size[0] - batch_height)
+                left = np.random.randint(0, img.size[1] - batch_width)
+                img = img.crop((top, top + batch_height, left, left + batch_width))
+                segm = segm.crop((top, top + batch_height, left, left + batch_width))
 
             # note that each sample within a mini batch has different scale param
             img = imresize(img, (batch_widths[i], batch_heights[i]), interp='bilinear')

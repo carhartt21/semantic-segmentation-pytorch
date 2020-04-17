@@ -203,6 +203,7 @@ def parse_devices(input_devices):
                 'Can not recognize device: "{}"'.format(d))
     return ret
 
+
 def create_spatial_mask(size, shape=(3,3)):
     w, h = size
     mask = np.zeros((h, w, 1))
@@ -212,6 +213,7 @@ def create_spatial_mask(size, shape=(3,3)):
         for j in range(shape[1]):
             mask[i*h_b:(i+1)*h_b, j*w_b:(j+1)*w_b] = val
             val += 1
+    print(mask)
     return mask
 
 class CrossEntropy(nn.Module):

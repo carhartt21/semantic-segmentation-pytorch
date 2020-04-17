@@ -386,7 +386,7 @@ class OCR(nn.Module):
         self.auxBlock = nn.Sequential(nn.Conv2d(fc_dim, fc_dim // 4, kernel_size=1, stride=1, padding=0), BatchNorm2d(fc_dim // 4),
             nn.ReLU(inplace=True), nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True))
         self.ocr3x3Conv = conv3x3_bn_relu(fc_dim, ocr_mid_channels, bias=True)
-        self.ocrGather = ocr.SpaialGather(num_class)
+        self.ocrGather = ocr.SpatialGather(num_class)
         self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels, out_channels=ocr_mid_channels, scale= OCR_params['SCALE'], dropout=OCR_params['DROPOUT'])
         self.classPred = nn.Conv2d(ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
 
