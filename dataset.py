@@ -2,9 +2,32 @@ import os
 import json
 import torch
 import time
-from torchvision import transforms
+from torchvision import transforms, utils
 import numpy as np
 from PIL import Image
+
+
+# Helper function to show a batch
+def show_batch(sample_batched):
+    """Show image with segmentation for a batch of samples."""
+    images_batch, segm_batch = \
+            sample_batched['img_data'], sample_batched['seg_label']
+    batch_size = len(images_batch)
+    im_size = images_batch.size(2)
+    grid_border_size = 2
+    fig = plt.figure()
+    grid1 = utils.make_grid(images_batch)
+    grid2 = utils.make_grid(segm_batch)
+    fig.add_subplot(grid2.numpy().transpose((1, 2, 0)))
+    plt.imshow(grid1.numpy().transpose((1, 2, 0)))
+    fig.add_subplot(1,2,1)
+    plt.imshow(grid2.numpy().transpose((1, 2, 0)))
+    plt.title('Batch from dataloader')
+    plt.axis('off')
+    plt.ioff()
+    plt.show()
+
+
 
 
 def imresize(im, size, interp='bilinear'):
@@ -35,6 +58,10 @@ class BaseDataset(torch.utils.data.Dataset):
         self.normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225])
+
+        self.normalizev2 = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406, 0.5],
+            std=[0.229, 0.224, 0.225, 0.5])
 
     def parse_input_list(self, odgt, max_sample=-1, start_idx=-1, end_idx=-1):
         if isinstance(odgt, list):
@@ -94,7 +121,8 @@ class TrainDataset(BaseDataset):
         self.if_shuffled = False
 
         self.rand_flip = True
-        self.rand_crop = False
+        self.rand_crop = True
+        self.spatial = True
 
     def _get_sub_batch(self):
         while True:
@@ -157,7 +185,7 @@ class TrainDataset(BaseDataset):
 
         assert self.padding_constant >= self.segm_downsampling_rate, \
             'padding constant must be equal or large than segm downsampling rate'
-        batch_images = torch.zeros(self.batch_per_gpu, 3, batch_height, batch_width)
+        batch_images = torch.zeros(self.batch_per_gpu, 3 + self.spatial, batch_height, batch_width)
         batch_segms = torch.zeros(self.batch_per_gpu,
             batch_height // self.segm_downsampling_rate,
             batch_width // self.segm_downsampling_rate).long()
@@ -175,36 +203,49 @@ class TrainDataset(BaseDataset):
             assert(img.size[0] == segm.size[0])
             assert(img.size[1] == segm.size[1])
 
-            # random_flip
-            if np.random.choice([0, 1]):
-                img = img.transpose(Image.FLIP_LEFT_RIGHT)
-                segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
+            # creating spatial mask
+            if self.spatial:
+                batch_mask = create_spatial_mask(img.size)
 
             # random_crop
-            if max(img.size) > max(batch_height, batch_width)*3 and np.random.choice([0, 1]):
-                top = np.random.randint(0, img.size[0] - batch_height)
-                left = np.random.randint(0, img.size[1] - batch_width)
-                img = img.crop((top, top + batch_height, left, left + batch_width))
-                segm = segm.crop((top, top + batch_height, left, left + batch_width))
+            if self.rand_crop and max(img.size) > max(batch_heights[i], batch_widths[i])*3 and np.random.choice([0, 1]):
+                top = np.random.randint(0, img.size[0] - batch_heights[i])
+                left = np.random.randint(0, img.size[1] - batch_widts[i])
+                img = img.crop((top, top + batch_heights[i], left, left + batch_widths[i]))
+                segm = segm.crop((top, top + batch_heights[i], left, left + batch_widths[i]))
+                if self.spatial:
+                    mask = mask[top:top + batch_heights[i], left:left+batch_widths[i]]
+
+            # random_flip
+            if self.rand_flip and np.random.choice([0, 1]):
+                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
+                if self.spatial:
+                    mask = np.flip(mask, 1)
 
             # note that each sample within a mini batch has different scale param
             img = imresize(img, (batch_widths[i], batch_heights[i]), interp='bilinear')
             segm = imresize(segm, (batch_widths[i], batch_heights[i]), interp='nearest')
+            mask = zoom(mask, mask.shape[0]/batch_heights[i], mode='near')
+            assert(img.size[0] == segm.size[0])
+            assert(img.size[1] == segm.size[1])
 
-            # further downsample seg label, need to avoid seg label misalignment
+            # further downsample seg label, to avoid seg label misalignment during loss calcualtion
             segm_rounded_width = self.round2nearest_multiple(segm.size[0], self.segm_downsampling_rate)
             segm_rounded_height = self.round2nearest_multiple(segm.size[1], self.segm_downsampling_rate)
             segm_rounded = Image.new('L', (segm_rounded_width, segm_rounded_height), 0)
             segm_rounded.paste(segm, (0, 0))
-            segm = imresize(
-                segm_rounded,
+            segm = imresize(segm_rounded,
                 (segm_rounded.size[0] // self.segm_downsampling_rate, \
                  segm_rounded.size[1] // self.segm_downsampling_rate), \
                 interp='nearest')
 
-            # image transform, to torch float tensor 3xHxW
-            img = self.img_transform(img)
-
+            if mask:
+                # image transform, to torch float tensor 4xHxW
+                img = self.img_transform_v2(img, mask)
+            else:
+                # image transform, to torch float tensor 3xHxW
+                img = self.img_transform(img)
             # segm transform, to torch long tensor HxW
             segm = self.segm_transform(segm)
 
