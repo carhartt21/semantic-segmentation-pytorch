@@ -1,11 +1,12 @@
 import os
 import json
 import torch
-import time
+import matplotlib.pyplot as plt
+from scipy.ndimage import zoom
 from torchvision import transforms, utils
 import numpy as np
 from PIL import Image
-
+from utils import create_spatial_mask
 
 # Helper function to show a batch
 def show_batch(sample_batched):
@@ -77,7 +78,7 @@ class BaseDataset(torch.utils.data.Dataset):
 
         self.num_sample = len(self.list_sample)
         assert self.num_sample > 0
-        print('# samples: {}'.format(self.num_sample))
+        print('# input images: {}'.format(self.num_sample))
 
     def img_transform(self, img):
         # 0-255 to 0-1
@@ -89,10 +90,10 @@ class BaseDataset(torch.utils.data.Dataset):
     def img_transform_v2(self, img, mask):
         # 0-255 to 0-1
         img = np.float32(np.array(img)) / 255.
-        mask = np.float32(mask) / mask.max()
+        mask = np.float32(mask)
         img = np.append(img, mask, axis=2)
         img = img.transpose((2, 0, 1))
-        img = self.normalize(torch.from_numpy(img.copy()))
+        img = self.normalizev2(torch.from_numpy(img.copy()))
         return img
 
     def segm_transform(self, segm):
@@ -152,7 +153,7 @@ class TrainDataset(BaseDataset):
     def __getitem__(self, index):
         # NOTE: random shuffle for the first time. shuffle in __init__ is useless
         if not self.if_shuffled:
-            np.random.seed(index)
+     #       np.random.seed(index)
             np.random.shuffle(self.list_sample)
             self.if_shuffled = True
 
@@ -202,33 +203,48 @@ class TrainDataset(BaseDataset):
             assert(segm.mode == "L"), 'Exception: segmentation file {} is not in mode L'.format(segm_path)
             assert(img.size[0] == segm.size[0])
             assert(img.size[1] == segm.size[1])
+            assert(img.size[0] > 0)
+            assert(img.size[1] > 0)
 
             # creating spatial mask
             if self.spatial:
                 batch_mask = create_spatial_mask(img.size)
+                assert(img.size[0] == batch_mask.shape[1])
+                assert(img.size[1] == batch_mask.shape[0])
+
 
             # random_crop
-            if self.rand_crop and max(img.size) > max(batch_heights[i], batch_widths[i])*3 and np.random.choice([0, 1]):
-                top = np.random.randint(0, img.size[0] - batch_heights[i])
-                left = np.random.randint(0, img.size[1] - batch_widts[i])
-                img = img.crop((top, top + batch_heights[i], left, left + batch_widths[i]))
-                segm = segm.crop((top, top + batch_heights[i], left, left + batch_widths[i]))
+            if self.rand_crop and max(img.size) > max(batch_heights[i], batch_widths[i])*3 and np.random.choice([0, 1], p=[0.7, 0.3]):
+                top = np.random.randint(0, img.size[1] - batch_heights[i])
+                left = np.random.randint(0, img.size[0] - batch_widths[i])
+                img = img.crop((left, top, left + batch_widths[i], top + batch_heights[i]))
+                segm = segm.crop((left, top, left + batch_widths[i], top + batch_heights[i]))
                 if self.spatial:
-                    mask = mask[top:top + batch_heights[i], left:left+batch_widths[i]]
+                    batch_mask = batch_mask[top:(top+batch_heights[i]), left:(left+batch_widths[i])]
+
 
             # random_flip
-            if self.rand_flip and np.random.choice([0, 1]):
+            if self.rand_flip and np.random.choice([0, 1], p=[0.7, 0.3]):
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
                 if self.spatial:
-                    mask = np.flip(mask, 1)
-
+                    batch_mask = np.flip(batch_mask, 1)
+            assert(img.size[0] > 0)
+            assert(img.size[1] > 0)
             # note that each sample within a mini batch has different scale param
             img = imresize(img, (batch_widths[i], batch_heights[i]), interp='bilinear')
             segm = imresize(segm, (batch_widths[i], batch_heights[i]), interp='nearest')
-            mask = zoom(mask, mask.shape[0]/batch_heights[i], mode='near')
             assert(img.size[0] == segm.size[0])
             assert(img.size[1] == segm.size[1])
+            assert(img.size[0] > 0)
+            assert(img.size[1] > 0)
+            if self.spatial:
+                batch_mask = zoom(batch_mask.squeeze(), [batch_heights[i]/batch_mask.shape[0], \
+                batch_widths[i]/batch_mask.shape[1]], mode='nearest')
+                batch_mask = np.expand_dims(batch_mask, 2)
+                assert(img.size[0] == batch_mask.shape[1])
+                assert(img.size[1] == batch_mask.shape[0])
+
 
             # further downsample seg label, to avoid seg label misalignment during loss calcualtion
             segm_rounded_width = self.round2nearest_multiple(segm.size[0], self.segm_downsampling_rate)
@@ -240,15 +256,14 @@ class TrainDataset(BaseDataset):
                  segm_rounded.size[1] // self.segm_downsampling_rate), \
                 interp='nearest')
 
-            if mask:
+            if self.spatial:
                 # image transform, to torch float tensor 4xHxW
-                img = self.img_transform_v2(img, mask)
+                img = self.img_transform_v2(img, batch_mask)
             else:
                 # image transform, to torch float tensor 3xHxW
                 img = self.img_transform(img)
             # segm transform, to torch long tensor HxW
             segm = self.segm_transform(segm)
-
             # put into batch arrays
             batch_images[i][:, :img.shape[1], :img.shape[2]] = img
             batch_segms[i][:segm.shape[0], :segm.shape[1]] = segm
