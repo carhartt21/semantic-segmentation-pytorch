@@ -122,7 +122,7 @@ class TrainDataset(BaseDataset):
 
         self.rand_flip = True
         self.rand_crop = True
-        self.spatial = True
+        self.spatial = False
 
     def _get_sub_batch(self):
         while True:
