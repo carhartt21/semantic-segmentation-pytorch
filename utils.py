@@ -6,6 +6,7 @@ import functools
 import fnmatch
 import numpy as np
 import torch.nn as nn
+from math import ceil
 
 def setup_logger(distributed_rank=0, filename="log.txt"):
     logger = logging.getLogger("Logger")
@@ -204,13 +205,14 @@ def parse_devices(input_devices):
 
 
 def create_spatial_mask(size=(10,10), shape=(3,3)):
-    h, w = size
+    w, h = size
+    max_val = (w*h)-1
     mask = np.zeros((h, w, 1))
-    h_b, w_b = (math.ceil(h/shape[0]),math.ceil(h/shape[1]))
+    h_b, w_b = (ceil(h/shape[0]), ceil(w/shape[1]))
     val = 0
     for i in range(shape[0]):
         for j in range(shape[1]):
-            mask[i*h_b:(i+1)*h_b, j*w_b:(j+1)*w_b] = val
+            mask[i*h_b:(i+1)*h_b, j*w_b:(j+1)*w_b] = val/max_val
             val += 1
     return mask
 
