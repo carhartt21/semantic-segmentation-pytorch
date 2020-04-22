@@ -352,7 +352,7 @@ class TestDataset(BaseDataset):
             scale = min(this_short_size / float(min(ori_height, ori_width)),
                         self.imgMaxSize / float(max(ori_height, ori_width)))
             target_height, target_width = int(ori_height * scale), int(ori_width * scale)
-            print('scale: {}, height: {}, width: {}'.format(scale, target_height, target_width)
+            print('scale: {}, height: {}, width: {}'.format(scale, target_height, target_width))
             # to avoid rounding in network
             target_width = self.round2nearest_multiple(target_width, self.padding_constant)
             target_height = self.round2nearest_multiple(target_height, self.padding_constant)

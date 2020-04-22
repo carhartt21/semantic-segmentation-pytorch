@@ -111,7 +111,8 @@ def main(cfg, gpu):
     net_encoder = ModelBuilder.build_encoder(
         arch=cfg.MODEL.arch_encoder.lower(),
         fc_dim=cfg.MODEL.fc_dim,
-        weights=cfg.MODEL.weights_encoder)
+        weights=cfg.MODEL.weights_encoder,
+        spatial=cfg.MODEL.spatial)
     net_decoder = ModelBuilder.build_decoder(
         arch=cfg.MODEL.arch_decoder.lower(),
         fc_dim=cfg.MODEL.fc_dim,
@@ -127,7 +128,8 @@ def main(cfg, gpu):
     dataset_val = ValDataset(
         cfg.DATASET.root_dataset,
         cfg.DATASET.list_val,
-        cfg.DATASET)
+        cfg.DATASET,
+        spatial=cfg.MODEL.spatial)
     loader_val = torch.utils.data.DataLoader(
         dataset_val,
         batch_size=cfg.VAL.batch_size,
