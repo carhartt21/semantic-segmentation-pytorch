@@ -42,6 +42,8 @@ _C.MODEL.weights_encoder = ""
 _C.MODEL.weights_decoder = ""
 # number of feature channels between encoder and decoder
 _C.MODEL.fc_dim = 2048
+# use spatial mask
+_C.MODEL.spatial = False
 
 # -----------------------------------------------------------------------------
 # Training

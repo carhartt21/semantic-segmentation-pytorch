@@ -70,7 +70,7 @@ class ModelBuilder:
         #    m.weight.data.normal_(0.0, 0.0001)
 
     @staticmethod
-    def build_encoder(arch='resnet50dilated', fc_dim=512, weights=''):
+    def build_encoder(arch='resnet50dilated', fc_dim=512, weights='', spatial=False):
         pretrained = True if len(weights) == 0 else False
         arch = arch.lower()
         if arch == 'mobilenetv2dilated':
@@ -106,7 +106,7 @@ class ModelBuilder:
             orig_resnext = resnext.__dict__['resnext101'](pretrained=pretrained)
             net_encoder = Resnet(orig_resnext) # we can still use class Resnet
         elif arch == 'hrnetv2':
-            net_encoder = hrnet.__dict__['hrnetv2'](pretrained=False)
+            net_encoder = hrnet.__dict__['hrnetv2'](pretrained=False, spatial=spatial)
         else:
             raise Exception('Architecture undefined!')
 
