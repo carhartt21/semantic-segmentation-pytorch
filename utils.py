@@ -233,4 +233,6 @@ class CrossEntropy(nn.Module):
     def forward(self, score, target):
         weights = [0.4, 1]
         assert len(weights) == len(score)
-        return sum([w * self._forward(x, target) for (w, x) in zip(weights, score)])
+        combined_loss = [w * self._forward(x, target) for (w, x) in zip(weights, score)]
+        print(combined_loss)
+        return sum(combined_loss)
