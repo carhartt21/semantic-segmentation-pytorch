@@ -50,7 +50,8 @@ def visualize_result(data, pred, cfg):
 
     img_name = info.split('/')[-1]
     Image.fromarray(im_vis).save(
-        os.path.join(cfg.TEST.result, '{}_{}{}.png'.format(img_name[:-4], cfg.MODEL.arch_encoder, cfg.MODEL.arch_decoder)))
+        os.path.join(cfg.TEST.result, '{}_{}{}.png'
+                     .format(img_name[:-4], cfg.MODEL.arch_encoder, cfg.MODEL.arch_decoder)))
 
 def test(segmentation_module, loader, gpu):
     segmentation_module.eval()
@@ -59,12 +60,12 @@ def test(segmentation_module, loader, gpu):
     for batch_data in loader:
         # process data
         batch_data = batch_data[0]
-        segSize = (batch_data['img_ori'].shape[0],
-                   batch_data['img_ori'].shape[1])
+        seg_size = (batch_data['img_ori'].shape[0],
+                    batch_data['img_ori'].shape[1])
         img_resized_list = batch_data['img_data']
 
         with torch.no_grad():
-            scores = torch.zeros(1, cfg.DATASET.num_class, segSize[0], segSize[1])
+            scores = torch.zeros(1, cfg.DATASET.num_class, seg_size[0], seg_size[1])
             scores = async_copy_to(scores, gpu)
 
             for img in img_resized_list:
@@ -74,13 +75,13 @@ def test(segmentation_module, loader, gpu):
                 del feed_dict['info']
                 feed_dict = async_copy_to(feed_dict, gpu)
                 # forward pass
-                pred_tmp = segmentation_module(feed_dict, segSize=segSize)
+                pred_tmp = segmentation_module(feed_dict, seg_size=seg_size)
                 scores += pred_tmp / len(cfg.DATASET.imgSizes)
             _, pred = torch.max(scores, dim=1)
             pred = as_numpy(pred.squeeze(0).cpu())
-            #print(pred)
+
         # visualization
-        visualize_result((batch_data['img_ori'], batch_data['info']),pred,cfg)
+        visualize_result((batch_data['img_ori'], batch_data['info']), pred, cfg)
         pbar.update(1)
 
 
@@ -100,8 +101,6 @@ def main(cfg, gpu):
         use_softmax=True)
 
     crit = nn.NLLLoss(ignore_index=-1)
-    #crit = nn.CrossEntropyLoss(ignore_index=-1)
-
     segmentation_module = SegmentationModule(net_encoder, net_decoder, crit)
 
     # Dataset and Loader
@@ -118,7 +117,7 @@ def main(cfg, gpu):
 
     segmentation_module.cuda()
 
-#    dump_input = torch.rand((1, 3, 1920, 1080))    
+#    dump_input = torch.rand((1, 3, 1920, 1080))
 #    with open ('dump_model_2.txt', 'w') as file:
 #         file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
 

@@ -55,8 +55,8 @@ def evaluate(segmentation_module, loader, cfg, gpu):
         torch.cuda.synchronize()
         tic = time.perf_counter()
         with torch.no_grad():
-            segSize = (seg_label.shape[0], seg_label.shape[1])
-            scores = torch.zeros(1, cfg.DATASET.num_class, segSize[0], segSize[1])
+            seg_size = (seg_label.shape[0], seg_label.shape[1])
+            scores = torch.zeros(1, cfg.DATASET.num_class, seg_size[0], seg_size[1])
             scores = async_copy_to(scores, gpu)
 
             for img in img_resized_list:
@@ -67,7 +67,7 @@ def evaluate(segmentation_module, loader, cfg, gpu):
                 feed_dict = async_copy_to(feed_dict, gpu)
 
                 # forward pass
-                scores_tmp = segmentation_module(feed_dict, segSize=segSize)
+                scores_tmp = segmentation_module(feed_dict, seg_size=seg_size)
                 scores = scores + scores_tmp / len(cfg.DATASET.imgSizes)
 
             _, pred = torch.max(scores, dim=1)
@@ -100,8 +100,8 @@ def evaluate(segmentation_module, loader, cfg, gpu):
 
     print('[Eval Summary]:')
     print('Mean IoU: {:.4f}, Accuracy: {:.2f}%, Inference Time: {:.4f}s'
-          .format(iou.mean(), acc_meter.average()*100, time_meter.average()))
-    return iou.mean, acc_meter.average()*100
+          .format(iou.mean(), acc_meter.average() * 100, time_meter.average()))
+    return iou.mean, acc_meter.average() * 100
 
 
 def main(cfg, gpu):

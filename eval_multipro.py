@@ -3,6 +3,7 @@ import os
 import argparse
 from distutils.version import LooseVersion
 from multiprocessing import Queue, Process
+import json
 # Numerical libs
 import numpy as np
 import math
@@ -21,9 +22,9 @@ from tqdm import tqdm
 def visualize_result(data, pred, dir_result):
     colors = []
     with open(cfg.DATASET.classInfo) as f:
-        clsInfo = json.load(f)
-    for c in clsInfo:
-        colors.append(clsInfo[c]['color'])
+        cls_info = json.load(f)
+    for c in cls_info:
+        colors.append(cls_info[c]['color'])
 
     (img, seg, info) = data
 
@@ -51,8 +52,8 @@ def evaluate(segmentation_module, loader, cfg, gpu_id, result_queue):
         img_resized_list = batch_data['img_data']
 
         with torch.no_grad():
-            segSize = (seg_label.shape[0], seg_label.shape[1])
-            scores = torch.zeros(1, cfg.DATASET.num_class, segSize[0], segSize[1])
+            seg_size = (seg_label.shape[0], seg_label.shape[1])
+            scores = torch.zeros(1, cfg.DATASET.num_class, seg_size[0], seg_size[1])
             scores = async_copy_to(scores, gpu_id)
 
             for img in img_resized_list:
@@ -63,7 +64,7 @@ def evaluate(segmentation_module, loader, cfg, gpu_id, result_queue):
                 feed_dict = async_copy_to(feed_dict, gpu_id)
 
                 # forward pass
-                scores_tmp = segmentation_module(feed_dict, segSize=segSize)
+                scores_tmp = segmentation_module(feed_dict, seg_size=seg_size)
                 scores = scores + scores_tmp / len(cfg.DATASET.imgSizes)
 
             _, pred = torch.max(scores, dim=1)
@@ -166,7 +167,7 @@ def main(cfg, gpus):
 
     print('[Eval Summary]:')
     print('Mean IoU: {:.4f}, Accuracy: {:.2f}%'
-          .format(iou.mean(), acc_meter.average()*100))
+          .format(iou.mean(), acc_meter.average() * 100))
 
     print('Evaluation Done!')
 

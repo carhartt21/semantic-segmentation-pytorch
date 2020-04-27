@@ -1,15 +1,8 @@
-# ------------------------------------------------------------------------------
-# Copyright (c) Microsoft
-# Licensed under the MIT License.
-# Written by Bin Xiao (Bin.Xiao@microsoft.com)
-# Modified by Ke Sun (sunk@mail.ustc.edu.cn)
-# ------------------------------------------------------------------------------
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
+from os import linesep
 import logging
 from collections import namedtuple
 
@@ -39,7 +32,7 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
     """
     summary = []
 
-    ModuleDetails = namedtuple(
+    module_details = namedtuple(
         "Layer", ["name", "input_size", "output_size", "num_parameters", "multiply_adds"])
     hooks = []
     layer_instances = {}
@@ -69,11 +62,11 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
             if class_name.find("Conv") != -1 and hasattr(module, "weight"):
                 flops = (
                     torch.prod(
-                        torch.LongTensor(list(module.weight.data.size()))) *
-                    torch.prod(
+                        torch.LongTensor(list(module.weight.data.size())))
+                    * torch.prod(
                         torch.LongTensor(list(output.size())[2:]))).item()
             elif isinstance(module, nn.Linear):
-                flops = (torch.prod(torch.LongTensor(list(output.size()))) \
+                flops = (torch.prod(torch.LongTensor(list(output.size())))
                          * input[0].size(1)).item()
 
             if isinstance(input[0], list):
@@ -82,7 +75,7 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
                 output = output[0]
 
             summary.append(
-                ModuleDetails(
+                module_details(
                     name=layer_name,
                     input_size=list(input[0].size()),
                     output_size=list(output.size()),
@@ -97,27 +90,26 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
     model.eval()
     model.apply(add_hooks)
     space_len = item_length
-    feed_dict=dict()
+    feed_dict = dict()
     feed_dict['img_data'] = input_tensors
-    feed_dict['seg_label'] = torch.rand(1,1200,600)
+    feed_dict['seg_label'] = torch.rand(1, 1200, 600)
     feed_dict = async_copy_to(feed_dict, 0)
-    segSize = (input_tensors.shape[2], input_tensors.shape[3])
-    model(feed_dict, segSize=segSize)
+    seg_size = (input_tensors.shape[2], input_tensors.shape[3])
+    model(feed_dict, seg_size=seg_size)
     for hook in hooks:
         hook.remove()
 
     details = ''
     if verbose:
         details = "Model Summary" + \
-            os.linesep + \
+            linesep + \
             "Name{}Input Size{}Output Size{}Parameters{}Multiply Adds (Flops){}".format(
                 ' ' * (space_len - len("Name")),
                 ' ' * (space_len - len("Input Size")),
                 ' ' * (space_len - len("Output Size")),
                 ' ' * (space_len - len("Parameters")),
                 ' ' * (space_len - len("Multiply Adds (Flops)"))) \
-                + os.linesep + '-' * space_len * 5 + os.linesep
-
+            + linesep + '-' * space_len * 5 + linesep
     params_sum = 0
     flops_sum = 0
     for layer in summary:
@@ -136,14 +128,14 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
                 ' ' * (space_len - len(str(layer.num_parameters))),
                 layer.multiply_adds,
                 ' ' * (space_len - len(str(layer.multiply_adds)))) \
-                + os.linesep + '-' * space_len * 5 + os.linesep
+                + linesep + '-' * space_len * 5 + linesep
 
-    details += os.linesep \
+    details += linesep \
         + "Total Parameters: {:,}".format(params_sum) \
-        + os.linesep + '-' * space_len * 5 + os.linesep
-    details += "Total Multiply Adds (For Convolution and Linear Layers only): {:,} GFLOPs".format(flops_sum/(1024**3)) \
-        + os.linesep + '-' * space_len * 5 + os.linesep
-    details += "Number of Layers" + os.linesep
+        + linesep + '-' * space_len * 5 + linesep
+    details += "Total Multiply Adds (For Convolution and Linear Layers only): {:,} GFLOPs".format(flops_sum / (1024**3))
+    + linesep + '-' * space_len * 5 + linesep
+    details += "Number of Layers" + linesep
     for layer in layer_instances:
         details += "{} : {} layers   ".format(layer, layer_instances[layer])
 

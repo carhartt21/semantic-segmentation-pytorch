@@ -23,11 +23,11 @@ def setup_logger(distributed_rank=0, filename="log.txt"):
     return logger
 
 
-def find_recursive(root_dir, ext='.jpg', namesOnly=False):
+def find_recursive(root_dir, ext='.jpg', names_only=False):
     files = []
     for root, dirnames, filenames in os.walk(root_dir):
         for filename in fnmatch.filter(filenames, '*' + ext):
-            if namesOnly:
+            if names_only:
                 files.append(os.path.join(filename))
             else:
                 files.append(os.path.join(root, filename))
@@ -120,7 +120,7 @@ def colorEncode(labelmap, colors, mode='RGB'):
         if label < 0:
             continue
         labelmap_rgb += (labelmap == label)[:, :, np.newaxis] * \
-            np.tile(colors[label+1],
+            np.tile(colors[label + 1],
                     (labelmap.shape[0], labelmap.shape[1], 1)).astype(np.uint8)
 
     if mode == 'BGR':
@@ -137,24 +137,24 @@ def accuracy(preds, label):
     return acc, valid_sum
 
 
-def intersectionAndUnion(imPred, imLab, numClass):
-    imPred = np.asarray(imPred).copy()
-    imLab = np.asarray(imLab).copy()
+def intersectionAndUnion(im_pred, im_label, num_class):
+    im_pred = np.asarray(im_pred).copy()
+    im_label = np.asarray(im_label).copy()
 
-    imPred += 1
-    imLab += 1
+    im_pred += 1
+    im_label += 1
     # Remove classes from unlabeled pixels in gt image.
     # We should not penalize detections in unlabeled portions of the image.
-    imPred = imPred * (imLab > 0)
+    im_pred = im_pred * (im_label > 0)
 
     # Compute area intersection:
-    intersection = imPred * (imPred == imLab)
+    intersection = im_pred * (im_pred == im_label)
     (area_intersection, _) = np.histogram(
-        intersection, bins=numClass, range=(1, numClass))
+        intersection, bins=num_class, range=(1, num_class))
 
     # Compute area union:
-    (area_pred, _) = np.histogram(imPred, bins=numClass, range=(1, numClass))
-    (area_lab, _) = np.histogram(imLab, bins=numClass, range=(1, numClass))
+    (area_pred, _) = np.histogram(im_pred, bins=num_class, range=(1, num_class))
+    (area_lab, _) = np.histogram(im_label, bins=num_class, range=(1, num_class))
     area_union = area_pred + area_lab - area_intersection
 
     return (area_intersection, area_union)
@@ -168,7 +168,7 @@ def process_range(xpu, inp):
     start, end = map(int, inp)
     if start > end:
         end, start = start, end
-    return map(lambda x: '{}{}'.format(xpu, x), range(start, end+1))
+    return map(lambda x: '{}{}'.format(xpu, x), range(start, end + 1))
 
 
 REGEX = [
@@ -204,15 +204,15 @@ def parse_devices(input_devices):
     return ret
 
 
-def create_spatial_mask(size=(10,10), shape=(3,3)):
+def create_spatial_mask(size=(10, 10), shape=(3, 3)):
     w, h = size
-    max_val = (w*h)-1
+    max_val = (w * h) - 1
     mask = np.zeros((h, w, 1))
-    h_b, w_b = (ceil(h/shape[0]), ceil(w/shape[1]))
+    h_b, w_b = (ceil(h / shape[0]), ceil(w / shape[1]))
     val = 0
     for i in range(shape[0]):
         for j in range(shape[1]):
-            mask[i*h_b:(i+1)*h_b, j*w_b:(j+1)*w_b] = val/max_val
+            mask[i * h_b:(i + 1) * h_b, j * w_b:(j + 1) * w_b] = val / max_val
             val += 1
     return mask
 
@@ -220,7 +220,7 @@ class CrossEntropy(nn.Module):
     def __init__(self, ignore_label=-1, weight=None):
         super(CrossEntropy, self).__init__()
         self.ignore_label = ignore_label
-        self.criterion = nn.CrossEntropyLoss(weight=weight,ignore_index=ignore_label)
+        self.criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_label)
 
     def _forward(self, score, target):
         ph, pw = score.size(2), score.size(3)
