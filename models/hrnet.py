@@ -150,17 +150,14 @@ class HighResolutionModule(nn.Module):
                           num_channels[branch_index] * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
                 BatchNorm2d(num_channels[branch_index] * block.expansion,
-                            momentum=BN_MOMENTUM),
-            )
+                            momentum=BN_MOMENTUM))
 
         layers = []
         layers.append(block(self.num_inchannels[branch_index],
                             num_channels[branch_index], stride, downsample))
-        self.num_inchannels[branch_index] = \
-            num_channels[branch_index] * block.expansion
+        self.num_inchannels[branch_index] = num_channels[branch_index] * block.expansion
         for i in range(1, num_blocks[branch_index]):
-            layers.append(block(self.num_inchannels[branch_index],
-                                num_channels[branch_index]))
+            layers.append(block(self.num_inchannels[branch_index], num_channels[branch_index]))
 
         return nn.Sequential(*layers)
 
@@ -183,26 +180,24 @@ class HighResolutionModule(nn.Module):
         for i in range(num_branches if self.multi_scale_output else 1):
             fuse_layer = []
             for j in range(num_branches):
-                if j > i:
+                if j > i: # connection to higher branch
                     fuse_layer.append(nn.Sequential(
-                        nn.Conv2d(num_inchannels[j],
-                                  num_inchannels[i],
-                                  1,
-                                  1,
-                                  0,
-                                  bias=False),
+                        nn.Conv2d(num_inchannels[j], num_inchannels[i],
+                                  kernel_size=1, stride=1, padding=0, bias=False),
                         BatchNorm2d(num_inchannels[i], momentum=BN_MOMENTUM)))
-                elif j == i:
+                elif j == i: #connection in the same branch
                     fuse_layer.append(None)
                 else:
+                    # connection to lower branch
+                    # create a series of 3x3 convolutions to downsample the feature maps
                     conv3x3s = []
                     for k in range(i-j):
-                        if k == i - j - 1:
+                        if k == i - j - 1: #last convolution
                             num_outchannels_conv3x3 = num_inchannels[i]
                             conv3x3s.append(nn.Sequential(
                                 nn.Conv2d(num_inchannels[j],
                                           num_outchannels_conv3x3,
-                                          3, 2, 1, bias=False),
+                                          kernel_size=3, stride=2, padding=1, bias=False),
                                 BatchNorm2d(num_outchannels_conv3x3,
                                             momentum=BN_MOMENTUM)))
                         else:
@@ -210,7 +205,7 @@ class HighResolutionModule(nn.Module):
                             conv3x3s.append(nn.Sequential(
                                 nn.Conv2d(num_inchannels[j],
                                           num_outchannels_conv3x3,
-                                          3, 2, 1, bias=False),
+                                          kernel_size=3, stride=2, padding=1, bias=False)),
                                 BatchNorm2d(num_outchannels_conv3x3,
                                             momentum=BN_MOMENTUM),
                                 nn.ReLU(inplace=True)))
@@ -258,13 +253,20 @@ blocks_dict = {
 class HRNetV2(nn.Module):
     def __init__(self, n_class, spatial=False, **kwargs):
         super(HRNetV2, self).__init__()
-        extra = {
+        #HRNet-W48
+        HRNetConf = {
             'STAGE2': {'NUM_MODULES': 1, 'NUM_BRANCHES': 2, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4), 'NUM_CHANNELS': (48, 96), 'FUSE_METHOD': 'SUM'},
             'STAGE3': {'NUM_MODULES': 4, 'NUM_BRANCHES': 3, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4, 4), 'NUM_CHANNELS': (48, 96, 192), 'FUSE_METHOD': 'SUM'},
             'STAGE4': {'NUM_MODULES': 3, 'NUM_BRANCHES': 4, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4, 4, 4), 'NUM_CHANNELS': (48, 96, 192, 384), 'FUSE_METHOD': 'SUM'},
             'FINAL_CONV_KERNEL': 1
             }
-
+        #HRNet-W64
+        # HRNetConf = {
+        #     'STAGE2': {'NUM_MODULES': 1, 'NUM_BRANCHES': 2, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4), 'NUM_CHANNELS': (64, 128), 'FUSE_METHOD': 'SUM'},
+        #     'STAGE3': {'NUM_MODULES': 4, 'NUM_BRANCHES': 3, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4, 4), 'NUM_CHANNELS': (64, 128, 256), 'FUSE_METHOD': 'SUM'},
+        #     'STAGE4': {'NUM_MODULES': 3, 'NUM_BRANCHES': 4, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4, 4, 4), 'NUM_CHANNELS': (64, 128, 256, 512), 'FUSE_METHOD': 'SUM'},
+        #     'FINAL_CONV_KERNEL': 1
+        #     }
         # stem net
         self.conv1 = nn.Conv2d((3 + spatial), 64, kernel_size=3, stride=2, padding=1,
                                bias=False)
@@ -276,37 +278,28 @@ class HRNetV2(nn.Module):
 
         self.layer1 = self._make_layer(Bottleneck, 64, 64, 4)
 
-        self.stage2_cfg = extra['STAGE2']
+        self.stage2_cfg = HRNetConf['STAGE2']
         num_channels = self.stage2_cfg['NUM_CHANNELS']
         block = blocks_dict[self.stage2_cfg['BLOCK']]
-        num_channels = [
-            num_channels[i] * block.expansion for i in range(len(num_channels))]
+        num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition1 = self._make_transition_layer([256], num_channels)
-        self.stage2, pre_stage_channels = self._make_stage(
-            self.stage2_cfg, num_channels)
+        self.stage2, pre_stage_channels = self._make_stage(self.stage2_cfg, num_channels)
 
-        self.stage3_cfg = extra['STAGE3']
+        self.stage3_cfg = HRNetConf['STAGE3']
         num_channels = self.stage3_cfg['NUM_CHANNELS']
         block = blocks_dict[self.stage3_cfg['BLOCK']]
-        num_channels = [
-            num_channels[i] * block.expansion for i in range(len(num_channels))]
-        self.transition2 = self._make_transition_layer(
-            pre_stage_channels, num_channels)
-        self.stage3, pre_stage_channels = self._make_stage(
-            self.stage3_cfg, num_channels)
+        num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
+        self.transition2 = self._make_transition_layer(pre_stage_channels, num_channels)
+        self.stage3, pre_stage_channels = self._make_stage(self.stage3_cfg, num_channels)
 
-        self.stage4_cfg = extra['STAGE4']
+        self.stage4_cfg = HRNetConf['STAGE4']
         num_channels = self.stage4_cfg['NUM_CHANNELS']
         block = blocks_dict[self.stage4_cfg['BLOCK']]
-        num_channels = [
-            num_channels[i] * block.expansion for i in range(len(num_channels))]
-        self.transition3 = self._make_transition_layer(
-            pre_stage_channels, num_channels)
-        self.stage4, pre_stage_channels = self._make_stage(
-            self.stage4_cfg, num_channels, multi_scale_output=True)
+        num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
+        self.transition3 = self._make_transition_layer(pre_stage_channels, num_channels)
+        self.stage4, pre_stage_channels = self._make_stage(self.stage4_cfg, num_channels, multi_scale_output=True)
 
-    def _make_transition_layer(
-            self, num_channels_pre_layer, num_channels_cur_layer):
+    def _make_transition_layer(self, num_channels_pre_layer, num_channels_cur_layer):
         num_branches_cur = len(num_channels_cur_layer)
         num_branches_pre = len(num_channels_pre_layer)
 
@@ -358,6 +351,7 @@ class HRNetV2(nn.Module):
 
         return nn.Sequential(*layers)
 
+    #create the blocks for each stage according to the configuration
     def _make_stage(self, layer_config, num_inchannels,
                     multi_scale_output=True):
         num_modules = layer_config['NUM_MODULES']
@@ -369,7 +363,6 @@ class HRNetV2(nn.Module):
 
         modules = []
         for i in range(num_modules):
-            # multi_scale_output is only used last module
             if not multi_scale_output and i == num_modules - 1:
                 reset_multi_scale_output = False
             else:
@@ -389,6 +382,7 @@ class HRNetV2(nn.Module):
         return nn.Sequential(*modules), num_inchannels
 
     def forward(self, x, return_feature_maps=False):
+        # Stage 1 stem net
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -396,7 +390,7 @@ class HRNetV2(nn.Module):
         x = self.bn2(x)
         x = self.relu(x)
         x = self.layer1(x)
-
+        # Stage 2
         x_list = []
         for i in range(self.stage2_cfg['NUM_BRANCHES']):
             if self.transition1[i] is not None:
@@ -404,7 +398,7 @@ class HRNetV2(nn.Module):
             else:
                 x_list.append(x)
         y_list = self.stage2(x_list)
-
+        # Stage 3
         x_list = []
         for i in range(self.stage3_cfg['NUM_BRANCHES']):
             if self.transition2[i] is not None:
@@ -412,7 +406,7 @@ class HRNetV2(nn.Module):
             else:
                 x_list.append(y_list[i])
         y_list = self.stage3(x_list)
-
+        # Stage 4
         x_list = []
         for i in range(self.stage4_cfg['NUM_BRANCHES']):
             if self.transition3[i] is not None:
@@ -426,9 +420,8 @@ class HRNetV2(nn.Module):
         x1 = F.interpolate(x[1], size=(x0_h, x0_w), mode='bilinear', align_corners=False)
         x2 = F.interpolate(x[2], size=(x0_h, x0_w), mode='bilinear', align_corners=False)
         x3 = F.interpolate(x[3], size=(x0_h, x0_w), mode='bilinear', align_corners=False)
-
+        # Concatenate
         x = torch.cat([x[0], x1, x2, x3], 1)
-        # x = self.last_layer(x)
         return [x]
 
 
