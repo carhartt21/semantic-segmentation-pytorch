@@ -1,7 +1,7 @@
 import os
 import json
 import torch
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
 from torchvision import transforms, utils
 import numpy as np
@@ -9,23 +9,23 @@ from PIL import Image
 from utils import create_spatial_mask
 
 # Helper function to show a batch
-def show_batch(sample_batched):
-    """Show image with segmentation for a batch of samples."""
-    images_batch, segm_batch = sample_batched['img_data'], sample_batched['seg_label']
-    batch_size = len(images_batch)
-    im_size = images_batch.size(2)
-    grid_border_size = 2
-    fig = plt.figure()
-    grid1 = utils.make_grid(images_batch)
-    grid2 = utils.make_grid(segm_batch)
-    fig.add_subplot(grid2.numpy().transpose((1, 2, 0)))
-    plt.imshow(grid1.numpy().transpose((1, 2, 0)))
-    fig.add_subplot(1, 2, 1)
-    plt.imshow(grid2.numpy().transpose((1, 2, 0)))
-    plt.title('Batch from dataloader')
-    plt.axis('off')
-    plt.ioff()
-    plt.show()
+# def show_batch(sample_batched):
+#     """Show image with segmentation for a batch of samples."""
+#     images_batch, segm_batch = sample_batched['img_data'], sample_batched['seg_label']
+#     batch_size = len(images_batch)
+#     im_size = images_batch.size(2)
+#     grid_border_size = 2
+#     fig = plt.figure()
+#     grid1 = utils.make_grid(images_batch)
+#     grid2 = utils.make_grid(segm_batch)
+#     fig.add_subplot(grid2.numpy().transpose((1, 2, 0)))
+#     plt.imshow(grid1.numpy().transpose((1, 2, 0)))
+#     fig.add_subplot(1, 2, 1)
+#     plt.imshow(grid2.numpy().transpose((1, 2, 0)))
+#     plt.title('Batch from dataloader')
+#     plt.axis('off')
+#     plt.ioff()
+#     plt.show()
 
 
 def imresize(im, size, interp='bilinear'):
@@ -267,8 +267,8 @@ class TrainDataset(BaseDataset):
         return output
 
     def __len__(self):
-        # return int(1e10)  It's a fake length due to the trick that every loader maintains its own list
-        return self.num_sampleclass
+        return int(1e10)  # It's a fake length due to the trick that every loader maintains its own list
+        # return self.num_sample
 
 
 class ValDataset(BaseDataset):
@@ -372,6 +372,32 @@ class TestDataset(BaseDataset):
         output['img_data'] = [x.contiguous() for x in img_resized_list]
         output['info'] = this_record['fpath_img']
         return output
+
+    def __len__(self):
+        return self.num_sample
+
+class StatsDataset(BaseDataset):
+    def __init__(self, root_dataset, odgt, opt, spatial=False, **kwargs):
+        super(StatsDataset, self).__init__(odgt, opt, **kwargs)
+        self.spatial = spatial
+        self.root_dataset = root_dataset
+
+    def __getitem__(self, index):
+        this_record = self.list_sample[index]
+        # load image and label
+        segm_path = os.path.join(self.root_dataset, this_record['fpath_segm'])
+        segm = Image.open(segm_path)
+        assert(segm.mode == "L")
+        segm_ = imresize(segm, (100, 100), interp='nearest')
+        # segm = self.segm_transform(segm)
+        # batch_segms = torch.unsqueeze(segm, 0)
+
+        # output = dict()
+        # output['seg_label'] = batch_segms.contiguous()
+        # output['info'] = this_record['fpath_img']
+        
+        # return segm = torch.from_numpy(np.array(segm)).long()
+        return np.array(segm), np.array(segm_)
 
     def __len__(self):
         return self.num_sample

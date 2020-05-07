@@ -76,13 +76,14 @@ if __name__ == '__main__':
         required=False,
         type=str,
         help="base directory name"
-        )
+    )
     parser.add_argument(
         "--outfile",
         default="output/imageList.txt",
         type=str,
         help="path to output file",
-        required=False)
+        required=False
+    )
     args = parser.parse_args()
 
     imgs = []
@@ -94,8 +95,7 @@ if __name__ == '__main__':
 
     if not os.path.isdir(args.segpath):
         print("Exception: segpath {} is not a directory".format(args.segpath))
-    
-    print('{} images found in {}'.format(len(imgs), args.imgpath)) 
+    print('{} images found in {}'.format(len(imgs), args.imgpath))
     #     print(args.segs)
     #     segs = find_recursive(args.segs)
     # else:
@@ -105,9 +105,9 @@ if __name__ == '__main__':
         seg = img.replace('images', 'labels')
         seg = seg.replace('.jpg', '.png')
         if os.path.isfile(seg):
-            list.append({'fpath_img': img, 'fpath_segm':seg, 'width': imgSize[0], 'height': imgSize[1]})
+            list.append({'fpath_img': img, 'fpath_segm': seg, 'width': imgSize[0], 'height': imgSize[1]})
         else:
             print('Exception: could not find segmentation file {}'.format(seg))
     with open(args.outfile, 'w') as outfile:
         json.dump(list, outfile, indent=1, separators=(',', ':'))
-    print('Finished: wrote {} files to file {}'.format(len(list),args.outfile))
+    print('Finished: wrote {} files to file {}'.format(len(list), args.outfile))

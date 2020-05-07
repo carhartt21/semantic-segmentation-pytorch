@@ -28,7 +28,7 @@ def find_recursive(root_dir, ext='.jpg', names_only=False):
     for root, dirnames, filenames in os.walk(root_dir):
         for filename in fnmatch.filter(filenames, '*' + ext):
             if names_only:
-                files.append(os.path.join(filename))
+                files.append(filename)
             else:
                 files.append(os.path.join(root, filename))
     return files
@@ -217,16 +217,18 @@ def create_spatial_mask(size=(10, 10), shape=(3, 3)):
     return mask
 
 class CrossEntropy(nn.Module):
-    def __init__(self, ignore_label=-1, weight=None):
+    def __init__(self, ignore_label=-1, weight=None, align_corners=False):
         super(CrossEntropy, self).__init__()
         self.ignore_label = ignore_label
+        self.align_corners = align_corners
         self.criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_label)
 
     def _forward(self, score, target):
         ph, pw = score.size(2), score.size(3)
         h, w = target.size(1), target.size(2)
         if ph != h or pw != w:
-            score = nn.functional.interpolate(input=score, size=(h, w), mode='bilinear', align_corners=False)
+            score = nn.functional.interpolate(input=score, size=(h, w), mode='bilinear',
+                                              align_corners=self.align_corners)
         loss = self.criterion(score, target)
         return loss
 
@@ -234,5 +236,5 @@ class CrossEntropy(nn.Module):
         weights = [0.4, 1]
         assert len(weights) == len(score)
         combined_loss = [w * self._forward(x, target) for (w, x) in zip(weights, score)]
-        print(combined_loss)
+        # print(combined_loss)
         return sum(combined_loss)

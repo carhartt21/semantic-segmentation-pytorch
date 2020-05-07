@@ -24,13 +24,12 @@ def visualize_result(data, pred, cfg):
     colors = []
     names = {}
     with open(cfg.DATASET.classInfo) as f:
-        clsInfo = json.load(f)
-    for c in clsInfo:
-        names[c] = clsInfo[c]['name']
-        colors.append(clsInfo[c]['color'])
+        cls_info = json.load(f)
+    for c in cls_info:
+        names[c] = cls_info[c]['name']
+        colors.append(cls_info[c]['color'])
     colors = np.array(colors, dtype='uint8')
     (img, info) = data
-    show_result = False
     # print predictions in descending order
     pred = np.int32(pred)
     pixs = pred.size
@@ -92,7 +91,8 @@ def main(cfg, gpu):
     net_encoder = ModelBuilder.build_encoder(
         arch=cfg.MODEL.arch_encoder,
         fc_dim=cfg.MODEL.fc_dim,
-        weights=cfg.MODEL.weights_encoder)
+        weights=cfg.MODEL.weights_encoder,
+        spatial=cfg.MODEL.spatial)
     net_decoder = ModelBuilder.build_decoder(
         arch=cfg.MODEL.arch_decoder,
         fc_dim=cfg.MODEL.fc_dim,
@@ -106,7 +106,8 @@ def main(cfg, gpu):
     # Dataset and Loader
     dataset_test = TestDataset(
         cfg.list_test,
-        cfg.DATASET)
+        cfg.DATASET, 
+        spatial=cfg.MODEL.spatial)
     loader_test = torch.utils.data.DataLoader(
         dataset_test,
         batch_size=cfg.TEST.batch_size,
@@ -117,9 +118,9 @@ def main(cfg, gpu):
 
     segmentation_module.cuda()
 
-#    dump_input = torch.rand((1, 3, 1920, 1080))
-#    with open ('dump_model_2.txt', 'w') as file:
-#         file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
+    dump_input = torch.rand((1, 3, 1920, 1080))
+    with open('dump_model_3.txt', 'w') as file:
+        file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
 
     # Main loop
     test(segmentation_module, loader_test, gpu)

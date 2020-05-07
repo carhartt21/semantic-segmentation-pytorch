@@ -1,7 +1,6 @@
 # System libs
 import os
 import time
-# import math
 import random
 import argparse
 from distutils.version import LooseVersion
@@ -55,7 +54,7 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
 
         # update average loss and acc
         ave_total_loss.update(loss.data.item())
-        ave_acc.update(acc.data.item()*100)
+        ave_acc.update(acc.data.item() * 100)
 
         # calculate accuracy, and display
         if i % cfg.TRAIN.disp_iter == 0:
@@ -75,12 +74,14 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
             history['train']['acc'].append(acc.data.item())
 
 
-def checkpoint(nets, history, cfg, epoch):
+def checkpoint(nets, history, optimizer, cfg, epoch):
     print('Saving checkpoints...')
     (net_encoder, net_decoder, crit) = nets
 
     dict_encoder = net_encoder.state_dict()
     dict_decoder = net_decoder.state_dict()
+    dict_optimizer_encoder = optimizer[0].state_dict()
+    dict_optimizer_decoder = optimizer[1].state_dict()
 
     torch.save(
         history,
@@ -91,17 +92,17 @@ def checkpoint(nets, history, cfg, epoch):
     torch.save(
         dict_decoder,
         '{}/decoder_epoch_{}.pth'.format(cfg.DIR, epoch))
+    torch.save({
+        'optimizer_encoder': dict_optimizer_encoder,
+        'optimizer_decoder': dict_optimizer_decoder},
+        '{}/optimizer_epoch_{}.pth'.format(cfg.DIR, epoch))
 
 
 def group_weight(module):
     group_decay = []
     group_no_decay = []
     for m in module.modules():
-        if isinstance(m, nn.Linear):
-            group_decay.append(m.weight)
-            if m.bias is not None:
-                group_no_decay.append(m.bias)
-        elif isinstance(m, nn.modules.conv._ConvNd):
+        if isinstance(m, nn.Linear) or isinstance(m, nn.modules.conv._ConvNd):
             group_decay.append(m.weight)
             if m.bias is not None:
                 group_no_decay.append(m.bias)
@@ -126,8 +127,13 @@ def create_optimizers(nets, cfg):
     optimizer_decoder = torch.optim.SGD(
         group_weight(net_decoder),
         lr=cfg.TRAIN.lr_decoder,
-        momentum=cfg.TRAIN.beta1,
+        momentum=cfg.TRAIN.beta1, 
         weight_decay=cfg.TRAIN.weight_decay)
+    if cfg.TRAIN.optim_data:
+        logger.info('=> Loading optimizer data')
+        optimizers = torch.load(cfg.TRAIN.optim_data)
+        optimizer_encoder.load_state_dict(optimizers['optimizer_encoder'])
+        optimizer_decoder.load_state_dict(optimizers['optimizer_decoder'])
     return (optimizer_encoder, optimizer_decoder)
 
 
@@ -145,8 +151,6 @@ def adjust_learning_rate(optimizers, cur_iter, cfg):
 
 def main(cfg, gpus):
     torch.backends.cudnn.enabled = False
-    # cudnn.deterministic = False
-    # cudnn.enabled = True
     # Network Builders
     net_encoder = ModelBuilder.build_encoder(
         arch=cfg.MODEL.arch_encoder.lower(),
@@ -191,9 +195,8 @@ def main(cfg, gpus):
     iterator_train = iter(loader_train)
     print('1 Epoch = {} iters'.format(cfg.TRAIN.epoch_iters))
 
-
     if cfg.TRAIN.eval:
-    # Dataset and Loader for validtaion data
+        #  Dataset and Loader for validtaion data
         dataset_val = ValDataset(
             cfg.DATASET.root_dataset,
             cfg.DATASET.list_val,
@@ -209,8 +212,7 @@ def main(cfg, gpus):
 
     # load nets into gpu
     if len(gpus) > 1:
-        segmentation_module = UserScatteredDataParallel(segmentation_module,
-            device_ids=gpus)
+        segmentation_module = UserScatteredDataParallel(segmentation_module, device_ids=gpus)
         # For sync bn
         patch_replication_callback(segmentation_module)
     segmentation_module.cuda()
@@ -222,16 +224,16 @@ def main(cfg, gpus):
     # Main loop
     history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'last_score': 0, 'best_score': cfg.TRAIN.best_score}}
     for epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch):
-        train(segmentation_module, iterator_train, optimizers, history, epoch+1, cfg)
+        train(segmentation_module, iterator_train, optimizers, history, epoch + 1, cfg)
         # calculate segmentation score
         if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=cfg.TRAIN.eval_step):
             iou, acc = evaluate(segmentation_module, iterator_val, cfg, gpus)
-            history['train']['last_score'] = (iou + acc)/2
+            history['train']['last_score'] = (iou + acc) / 2
             if history['train']['last_score'] > history['train']['best_score']:
-               history['train']['best_score'] = history['train']['last_score']
-               checkpoint(nets, history, cfg, 'best_score')
+                history['train']['best_score'] = history['train']['last_score']
+                checkpoint(nets, history, optimizers, cfg, 'best_score')
         # checkpointing
-        checkpoint(nets, history, cfg, epoch+1)
+        checkpoint(nets, history, optimizers, cfg, epoch + 1)
     print('Training Done!')
 
 
@@ -268,13 +270,13 @@ if __name__ == '__main__':
     # cfg.freeze()
 
     logger = setup_logger(distributed_rank=0)
-    logger.info("Loaded configuration file {}".format(args.cfg))
-    logger.info("Running with config:\n{}".format(cfg))
+    logger.info("=> Loaded configuration file {}".format(args.cfg))
+    logger.info("=> Running with config:\n{}".format(cfg))
 
     # Output directory
     if not os.path.isdir(cfg.DIR):
         os.makedirs(cfg.DIR)
-    logger.info("Outputing checkpoints to: {}".format(cfg.DIR))
+    logger.info("=> Outputing checkpoints to: {}".format(cfg.DIR))
     with open(os.path.join(cfg.DIR, 'config.yaml'), 'w') as f:
         f.write("{}".format(cfg))
 
@@ -288,12 +290,18 @@ if __name__ == '__main__':
             cfg.DIR, 'history_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
         assert os.path.exists(cfg.MODEL.weights_encoder) and \
             os.path.exists(cfg.MODEL.weights_decoder), "checkpoint does not exist!"
-        if os.path.exists(cfg.MODEL.history):
-            try:
-                hist = torch.load(cfg.MODEL.history)
-                cfg.TRAIN.best_score = hist['train']['best_score']
-            except KeyError:
-                print('No previous score in history file')
+        try:
+            cfg.TRAIN.optim_data = os.path.join(
+                cfg.DIR, 'optimizer_epoch_{}.pth'.format(cfg.TRAIN.start_epoch))
+        except KeyError:
+            logger.info('=> No optimizer data found for epoch {}'.format(
+                cfg.TRAIN.start_epoch))
+        # if os.path.exists(cfg.MODEL.history):
+        #     try:
+        #         hist = torch.load(cfg.MODEL.history)
+        #         cfg.TRAIN.best_score = hist['train']['best_score']
+        #     except KeyError:
+        #         print('No previous score in history file')
     # Parse gpu ids
     gpus = parse_devices(args.gpus)
     gpus = [x.replace('gpu', '') for x in gpus]

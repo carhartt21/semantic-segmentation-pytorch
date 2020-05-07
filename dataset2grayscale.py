@@ -8,10 +8,10 @@ from scipy.io import loadmat
 from timeit import default_timer as timer
 from tqdm import tqdm
 from pathlib import Path
-#internal libraries
+# internal libraries
 from utils import colorEncode, find_recursive
 
-def remapImageMat(img):
+def remap_image_mat(img):
     """Maps an image to a grayscale image according to the maps and saves the result.
 
     Parameters
@@ -21,82 +21,34 @@ def remapImageMat(img):
 
     """
     # Read image
-    imgData = imageio.imread(img)
+    img_data = imageio.imread(img)
     if args.dataset == 'mapillary':
-        imgData = np.delete(imgData,3,2)
-        uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
-    if args.dataset == 'ADE':
-        imgData = imgData[:,:,0]*256/10+imgData[:,:,1]
-        uniqueValues = np.unique(imgData.reshape(-1,1), axis=0)
+        img_data = np.delete(img_data, 3, 2)
+        unique_values = np.unique(img_data.reshape(-1, 3), axis=0)
+    if args.dataset == 'ADE20k':
+        img_data = img_data[:, :, 0] * 256 / 10 + img_data[:, :, 1]
+        unique_values = np.unique(img_data.reshape(-1, 1), axis=0)
     elif args.dataset == 'PASCAL':
-        imgData = np.delete(imgData,3,2)
-        uniqueValues = np.unique(imgData.reshape(-1,3), axis=0)
-    grayImage = np.zeros((imgData.shape[0], imgData.shape[1]),dtype='uint8')
-    imgName = img.split('/')[-1]
+        img_data = np.delete(img_data, 3, 2)
+        unique_values = np.unique(img_data.reshape(-1, 3), axis=0)
+    gray_image = np.zeros((img_data.shape[0], img_data.shape[1]), dtype='uint8')
+    img_name = img.split('/')[-1]
     # Check if file exists already in the output path
-    if os.path.isfile('{}/{}'.format(args.output, imgName)):
+    if os.path.isfile('{}/{}'.format(args.output, img_name)):
         return
-    for val in uniqueValues:
+    for val in unique_values:
         if args.dataset == 'mapillary':
             try:
-                oldClass = mapColors.index(list(val))
-                grayImage += ((imgData == val).all(axis=2) * mapNames[str(oldClass)]).astype(np.uint8)
+                old_class = mapColors.index(list(val))
+                gray_image += ((img_data == val).all(axis=2) * mapNames[str(old_class)]).astype(np.uint8)
             except ValueError:
                 print('Exception: class {} not found'.format(val))
         elif args.dataset == 'ADE':
-            grayImage += ((imgData == val) * mapNames[str(int(val))]).astype(np.uint8)
+            gray_image += ((img_data == val) * mapNames[str(int(val))]).astype(np.uint8)
         elif args.dataset == 'ADE20K':
-            grayImage += ((imgData == val) * mapNames[str(int(val))]).astype(np.uint8)
+            gray_image += ((img_data == val) * mapNames[str(int(val))]).astype(np.uint8)
 
-    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
-    return
-
-
-def remapImage(img):
-    """Maps an image to a grayscale image according to the maps and saves the result.
-
-    Parameters
-    ----------
-    img : np.array (m,n,o)
-        Image data with semantic segmentation.
-
-    """
-    # Read image
-    imgData = imageio.imread(img)
-    grayImage = np.zeros(imgData.shape[:-1],dtype='uint8')
-    imgName = img.split('/')[-1]
-    prevRGB = []
-    prevClass = 0
-    # Check if file exists already in the output path
-    if os.path.isfile('{}/{}'.format(args.output, imgName)):
-        return
-    # Loop through pixels
-    for x in range(0,imgData.shape[0]):
-        for y in range(0,imgData.shape[1]):
-            # Determine old class
-            RGB = imgData[x][y][-1]
-            oldClass = -1
-            if RGB == prevRGB:
-                imgData[x][y] = prevClass
-                continue
-            if args.dataset == 'mapillary':
-                try:
-                    oldClass = mapColors.index(list(RGB))
-                except ValueError:
-                    print('Exception: class {} in {} at [{}, {}] not found'.format(RGB, img, x, y))
-            elif args.dataset == 'ADE20K':
-                oldClass = imgData[x][y]
-            # Map to new class
-            try:
-                newClass = mapNames[str(oldClass)]
-                grayImage[x][y] = newClass
-                prevRGB = RGB
-                prevClass = newClass
-            except ValueError:
-                print('Exception: no mapping for class {} at [{}, {}]'.format(oldClass, x, y))
-    # Save image
-    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), grayImage)
-    return
+    imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), gray_image)
 
 
 if __name__ == '__main__':
@@ -113,7 +65,7 @@ if __name__ == '__main__':
         "--output",
         required=False,
         type=str,
-        help="Path for output files",
+        help="Path for output folder",
         default='output/'
     )
     parser.add_argument(
@@ -141,23 +93,23 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.dataset == 'mapillary':
         colorMappingFile = Path('data/colorsMapillary.json')
-        nameMappingFile = Path('data/MapillaryMap.json')
+        nameMappingFile = Path('data/MapillaryMap27.json')
         with open(colorMappingFile) as mfile:
             mapColors = list(json.load(mfile).values())
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
-    elif args.dataset == 'ADE20K':
+    elif args.dataset == 'ADE':
         nameMappingFile = Path('data/ADEMap.json')
     elif args.dataset == 'PASCAL':
         nameMappingFile = Path('data/PASCALMap.json')
-    with open(nameMappingFile) as mfile:
-        mapNames = json.load(mfile)
-    elif args.dataset == 'ADE20K':
-        nameMappingFile = Path('data/ADE20kMap.json')
+        with open(nameMappingFile) as mfile:
+            mapNames = json.load(mfile)
+    elif args.dataset == 'ADE20k':
+        nameMappingFile = Path('data/ADEMap27.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     else:
-        print('Exception: Dataset type {} unknown'.format(dataset))
+        print('Exception: Dataset type {} unknown'.format(args.dataset))
     # Generate image list
     if os.path.isdir(args.input):
         print(args.input)
@@ -172,7 +124,8 @@ if __name__ == '__main__':
     # Create worker pool
     pool = mp.Pool(args.nproc)
     # Assign tasks to workers
-    for _ in tqdm(pool.imap_unordered(remapImageMat,[(img) for img in imgs], chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
-       pass
+    for _ in tqdm(pool.imap_unordered(remap_image_mat, [(img) for img in imgs],
+                  chunksize=args.chunk), total=len(imgs), desc='Mapping images', ascii=True):
+        pass
     # Close pool
     pool.close()
