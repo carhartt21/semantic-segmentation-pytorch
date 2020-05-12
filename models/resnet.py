@@ -168,18 +168,6 @@ def resnet18(pretrained=False, **kwargs):
         model.load_state_dict(load_url(model_urls['resnet18']))
     return model
 
-'''
-def resnet34(pretrained=False, **kwargs):
-    """Constructs a ResNet-34 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
-    if pretrained:
-        model.load_state_dict(load_url(model_urls['resnet34']))
-    return model
-'''
 
 def resnet50(pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.

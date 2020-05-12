@@ -5,6 +5,7 @@ import io
 import argparse
 import json
 from utils import find_recursive
+from numpy.random import choice
 
 
 class UnknownImageFormat(Exception):
@@ -71,7 +72,7 @@ if __name__ == '__main__':
         help="base directory name"
     )
     parser.add_argument(
-        "--segpath",
+        "--labelpath",
         default="data/",
         required=False,
         type=str,
@@ -84,6 +85,20 @@ if __name__ == '__main__':
         help="path to output file",
         required=False
     )
+    parser.add_argument(
+        "--split",
+        default=False,
+        type=str,
+        help="Switch to create train validation split",
+        required=False
+    )
+    parser.add_argument(
+        "--probs",
+        default=[0.1,0.9],
+        type=list,
+        help="Switch to create train validation split",
+        required=False
+    )
     args = parser.parse_args()
 
     imgs = []
@@ -93,21 +108,45 @@ if __name__ == '__main__':
     else:
         print("Exception: imgpath {} is not a directory".format(args.imgpath))
 
-    if not os.path.isdir(args.segpath):
-        print("Exception: segpath {} is not a directory".format(args.segpath))
+    if not os.path.isdir(args.labelpath):
+        print("Exception: labelpath {} is not a directory".format(args.labelpath))
     print('{} images found in {}'.format(len(imgs), args.imgpath))
     #     print(args.segs)
     #     segs = find_recursive(args.segs)
     # else:
-    list = []
-    for img in imgs:
-        imgSize = get_image_size(img)
-        seg = img.replace('images', 'labels')
-        seg = seg.replace('.jpg', '.png')
-        if os.path.isfile(seg):
-            list.append({'fpath_img': img, 'fpath_segm': seg, 'width': imgSize[0], 'height': imgSize[1]})
-        else:
-            print('Exception: could not find segmentation file {}'.format(seg))
-    with open(args.outfile, 'w') as outfile:
-        json.dump(list, outfile, indent=1, separators=(',', ':'))
-    print('Finished: wrote {} files to file {}'.format(len(list), args.outfile))
+    if args.split:
+        train_list = []
+        val_list = []
+        for img in imgs:
+            imgSize = get_image_size(img)
+            seg = img.replace('images', 'labels')
+            seg = seg.replace('.jpg', '.png')
+            if os.path.isfile(seg):
+                if choice([0, 1], p=args.probs):
+                    train_list.append({'fpath_img': img.replace('data/',''), 'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})
+                else:
+                    val_list.append({'fpath_img': img.replace('data/',''), 'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})                    
+            else:
+                print('Exception: could not find segmentation file {}'.format(seg))
+        with open(args.outfile+'_train.odgt', 'w') as outfile:
+            json.dump(train_list, outfile, indent=1, separators=(',', ':'))
+        with open(args.outfile+'_val.odgt', 'w') as outfile:
+            json.dump(val_list, outfile, indent=1, separators=(',', ':'))
+        print('----Finished----')
+        print('wrote {} files to file {}'.format(len(train_list), args.outfile+'_train.odgt'))
+        print('wrote {} files to file {}'.format(len(val_list), args.outfile+'_val.odgt'))
+
+    else:    
+        list = []
+        for img in imgs:
+            imgSize = get_image_size(img)
+            seg = img.replace('images', 'labels')
+            seg = seg.replace('.jpg', '.png')
+            if os.path.isfile(seg):
+                list.append({'fpath_img': img.replace('data/',''), 'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})
+            else:
+                print('Exception: could not find segmentation file {}'.format(seg))
+        with open(args.outfile+'.odgt', 'w') as outfile:
+            json.dump(list, outfile, indent=1, separators=(',', ':'))
+        print('----Finished----')
+        print('wrote {} files to file {}'.format(len(list), args.outfile+'.odgt'))

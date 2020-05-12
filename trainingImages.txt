@@ -1,0 +1,2 @@
+data/ADEChallengeData2016/annotations/training
+/home/chge7185/image2image/sem-seg-pytorch/semantic-segmentation-pytorch

@@ -14,6 +14,7 @@ _C.DATASET = CN()
 _C.DATASET.root_dataset = "./data/"
 _C.DATASET.list_train = "./data/training.odgt"
 _C.DATASET.list_val = "./data/validation.odgt"
+_C.DATASET.list_stats = ""
 _C.DATASET.num_class = 150
 # multiscale train/test, size of short edge (int or tuple)
 _C.DATASET.imgSizes = (300, 375, 450, 525, 600)
@@ -25,6 +26,8 @@ _C.DATASET.padding_constant = 8
 _C.DATASET.segm_downsampling_rate = 8
 # randomly horizontally flip images when train/test
 _C.DATASET.random_flip = True
+# randomly crop images if the size exceeds the maximum size
+_C.DATASET.random_crop = True
 # info file
 _C.DATASET.classInfo = "./data/ADE20kClasses.json"
 
@@ -44,6 +47,9 @@ _C.MODEL.weights_decoder = ""
 _C.MODEL.fc_dim = 2048
 # use spatial mask
 _C.MODEL.spatial = False
+# align corners during upsampling
+_C.MODEL.align_corners = False
+
 
 # -----------------------------------------------------------------------------
 # Training
@@ -82,6 +88,11 @@ _C.TRAIN.eval = False
 _C.TRAIN.eval_step = 5
 # best score from previous Training
 _C.TRAIN.best_score = 0
+# optimizer data from previous training
+_C.TRAIN.optim_data = ""
+# use ground truth data during training of the ocr module
+_C.TRAIN.ocr_use_gt = False
+
 # -----------------------------------------------------------------------------
 # Validation
 # -----------------------------------------------------------------------------

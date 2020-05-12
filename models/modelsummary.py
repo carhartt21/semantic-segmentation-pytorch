@@ -1,9 +1,4 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from os import linesep
-import logging
 from collections import namedtuple
 
 import torch
@@ -22,8 +17,7 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
     item_length : type
         length of output items
     verbose : bool
-        Description of parameter `verbose`.
-
+    
     Returns
     -------
     str
@@ -133,8 +127,8 @@ def get_model_summary(model, input_tensors, item_length=26, verbose=False):
     details += linesep \
         + "Total Parameters: {:,}".format(params_sum) \
         + linesep + '-' * space_len * 5 + linesep
-    details += "Total Multiply Adds (For Convolution and Linear Layers only): {:,} GFLOPs".format(flops_sum / (1024**3))
-    + linesep + '-' * space_len * 5 + linesep
+    details += "Total Multiply Adds (only Convolution and Linear Layers): {:,} GFLOPs".format(flops_sum / (1024**3)) \
+        + linesep + '-' * space_len * 5 + linesep
     details += "Number of Layers" + linesep
     for layer in layer_instances:
         details += "{} : {} layers   ".format(layer, layer_instances[layer])

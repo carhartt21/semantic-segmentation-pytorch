@@ -34,7 +34,7 @@ def stats(args):
         class_names.append(cls_info[c]['name'])
         class_colors.append(cls_info[c]['color'])
     log.info('Loading data from: {}'.format(cfg.DATASET.list_stats))
-    torch_data_loader = torch.utils.data.DataLoader(data_loader, batch_size=1, num_workers=1, shuffle=False)
+    torch_data_loader = torch.utils.data.DataLoader(data_loader, batch_size=1, num_workers=16, shuffle=False)
 
     num_classes = cfg.DATASET.num_class
     num_images = len(data_loader)
@@ -139,7 +139,7 @@ def stats(args):
     # ax.set_xlim(0, class_percentage.max())
     ax.set_xlabel(y_label_)
     ax.set_title('Average Image Per-class Pixel Percentage')
-    ax.set_xlim(0, 5 * ceil(class_percentage_per_image.max() / 5.0))
+    ax.set_ylim(0, 5 * ceil(class_percentage_per_image.max() / 5.0))
     plt.gca().margins(y=0.01)
     plt.gcf().set_size_inches(
         plt.gcf().get_size_inches()[0], 0.17 * num_classes)
@@ -148,6 +148,7 @@ def stats(args):
     # Plot heatmaps
     for c in range(num_classes):
         fig, ax = plt.subplots()
+        # red-blue palette
         # cmap = sns.diverging_palette(220, 10, as_cmap=True)
         sns.heatmap(class_heatmap[c], ax=ax, vmin=0.0, vmax=1.0)
         ax.set_title('{0} heatmap'.format(class_names[c]))
@@ -156,7 +157,7 @@ def stats(args):
         plt.close()
 
     np.savez(
-        'results',
+        os.path.join(args.out, 'results'),
         class_pixel_percentage=class_pixel_percentage,
         class_image_percentage=class_image_percentage,
         class_percentage_per_image=class_percentage_per_image,
@@ -170,4 +171,6 @@ if __name__ == '__main__':
     parser_.add_argument('--out', nargs='?', type=str, default='plots',
                          help='Name of output folder')
     args = parser_.parse_args()
+    if not os.path.isdir(args.out):
+        os.makedirs(args.out)                     
     stats(args)

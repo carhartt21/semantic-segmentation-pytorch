@@ -161,12 +161,14 @@ def main(cfg, gpus):
         arch=cfg.MODEL.arch_decoder.lower(),
         fc_dim=cfg.MODEL.fc_dim,
         num_class=cfg.DATASET.num_class,
-        weights=cfg.MODEL.weights_decoder)
+        weights=cfg.MODEL.weights_decoder,
+        use_gt=cfg.TRAIN.ocr_use_gt)
 
     if cfg.MODEL.arch_decoder == 'ocr':
-        print('Using cross entropy loss')
+        logger.info('=> Using cross entropy loss')
         crit = CrossEntropy(ignore_label=-1)
     else:
+        logger.info('=> Using negative log likelihood loss')
         crit = nn.NLLLoss(ignore_index=-1)
 
     if cfg.MODEL.arch_decoder.endswith('deepsup'):
@@ -276,7 +278,7 @@ if __name__ == '__main__':
     # Output directory
     if not os.path.isdir(cfg.DIR):
         os.makedirs(cfg.DIR)
-    logger.info("=> Outputing checkpoints to: {}".format(cfg.DIR))
+    logger.info("=> Saving checkpoints to: {}".format(cfg.DIR))
     with open(os.path.join(cfg.DIR, 'config.yaml'), 'w') as f:
         f.write("{}".format(cfg))
 

@@ -1,0 +1,5 @@
+[{"fpath_img":"map20k/images/validation/ADE20k/ADE_val_00000027.jpg","fpath_segm":"map20k/labels/validation/ADE20k/ADE_val_00000027.png","width":527,"height":512},
+{"fpath_img":"map20k/images/validation/mapillary/q4M54POWdA0aQqU5iWxXVQ.jpg","fpath_segm":"map20k/labels/validation/mapillary/q4M54POWdA0aQqU5iWxXVQ.png","width":3264,"height":2448},
+{"fpath_img":"map20k/images/validation/mapillary/6NdAt8jUKb82E1DWPMBiew.jpg","fpath_segm":"map20k/labels/validation/mapillary/6NdAt8jUKb82E1DWPMBiew.png","width":1600,"height":1184},
+{"fpath_img":"map20k/images/validation/mapillary/UcUYO0r4Umy0XUz0jlkkyQ.jpg","fpath_segm":"map20k/labels/validation/mapillary/UcUYO0r4Umy0XUz0jlkkyQ.png","width":3264,"height":1836},
+{"fpath_img":"map20k/images/validation/ADE20k/ADE_val_00001818.jpg","fpath_segm":"map20k/labels/validation/ADE20k/ADE_val_00001818.png","width":683,"height":512}]

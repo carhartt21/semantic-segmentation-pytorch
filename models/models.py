@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
 import torchvision
+import os
+import logging
 from . import resnet, resnext, mobilenet, hrnet, ocr
 # from lib.nn import SynchronizedBatchNorm2d, BatchNorm2d
 BatchNorm2d = torch.nn.BatchNorm2d
 
+logger = logging.getLogger(__name__)
 
 class SegmentationModuleBase(nn.Module):
     def __init__(self):
@@ -68,7 +71,7 @@ class ModelBuilder:
             m.bias.data.fill_(1e-4)
 
     @staticmethod
-    def build_encoder(arch='resnet50dilated', fc_dim=512, weights='', spatial=False):
+    def build_encoder(arch='resnet50dilated', fc_dim=512, weights='', spatial=False, align_corners=False):
         pretrained = True if len(weights) == 0 else False
         arch = arch.lower()
         if arch == 'mobilenetv2dilated':
@@ -96,23 +99,26 @@ class ModelBuilder:
             orig_resnext = resnext.__dict__['resnext101'](pretrained=pretrained)
             net_encoder = Resnet(orig_resnext)  # we can still use class Resnet
         elif arch == 'hrnetv2':
-            net_encoder = hrnet.__dict__['hrnetv2'](pretrained=False, spatial=spatial)
+            net_encoder = hrnet.__dict__['hrnetv2'](
+                weights=weights, spatial=spatial, align_corners=align_corners)
+            weights = ''
         else:
             raise Exception('Architecture undefined!')
 
-        # encoders are usually pretrained
-        if len(weights) > 0:
-            print('Loading weights for net_encoder')
-            net_encoder.load_state_dict(
-                torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
-        else:
+        if arch != 'hrnetv2':
             net_encoder.apply(ModelBuilder.weights_init)
+        # encoders are usually pretrained
+            if len(weights) > 0:
+                print('Loading weights for net_encoder')
+                net_encoder.load_state_dict(
+                    torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
         return net_encoder
 
     @staticmethod
     def build_decoder(arch='ppm_deepsup',
                       fc_dim=512, num_class=150,
-                      weights='', use_softmax=False):
+                      weights='', use_softmax=False,
+                      align_corners=False, use_gt=False):
         arch = arch.lower()
         if arch == 'c1_deepsup':
             net_decoder = C1DeepSup(
@@ -150,16 +156,21 @@ class ModelBuilder:
             net_decoder = OCR(
                 num_class=num_class,
                 fc_dim=fc_dim,
-                use_softmax=use_softmax)
+                use_softmax=use_softmax,
+                align_corners=align_corners,
+                use_gt=use_gt)
+            net_decoder.init_weights(weights=weights)
+            weights = ''
 
         else:
             raise Exception('Architecture undefined!')
+        if arch != 'ocr':
+            net_decoder.apply(ModelBuilder.weights_init)
+            if len(weights) > 0:
+                logger.info('Loading weights for net_decoder')
+                net_decoder.load_state_dict(
+                    torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
 
-        net_decoder.apply(ModelBuilder.weights_init)
-        if len(weights) > 0:
-            print('Loading weights for net_decoder')
-            net_decoder.load_state_dict(
-                torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
         return net_decoder
 
 
@@ -374,10 +385,12 @@ class C1DeepSup(nn.Module):
 
 # OCR
 class OCR(nn.Module):
-    def __init__(self, num_class=43, fc_dim=720, use_softmax=False):
+    def __init__(self, num_class=43, fc_dim=720, use_softmax=False, align_corners=False, use_gt=False):
         super(OCR, self).__init__()
         ocr_params = {'MID_CHANNELS': 512, 'KEY_CHANNELS': 256, 'DROPOUT': 0.05, 'SCALE': 1}
-        self.useSoftmax = use_softmax
+        self.use_softmax = use_softmax
+        self.align_corners = align_corners
+        self.use_gt = use_gt
         ocr_mid_channels = ocr_params['MID_CHANNELS']
         ocr_key_channels = ocr_params['KEY_CHANNELS']
 
@@ -386,11 +399,29 @@ class OCR(nn.Module):
                                       nn.ReLU(inplace=True),
                                       nn.Conv2d(fc_dim // 4, num_class, kernel_size=1, stride=1, padding=0, bias=True))
         self.ocr3x3Conv = conv3x3_bn_relu(fc_dim, ocr_mid_channels, bias=True)
-        self.ocrGather = ocr.SpatialGather(num_class)
+        self.ocrGather = ocr.SpatialGather(num_class, use_gt=self.use_gt)
         self.ocrBlock = ocr.SpatialOCR(in_channels=ocr_mid_channels, key_channels=ocr_key_channels,
                                        out_channels=ocr_mid_channels, scale=ocr_params['SCALE'],
-                                       dropout=ocr_params['DROPOUT'])
+                                       dropout=ocr_params['DROPOUT'], use_gt=self.use_gt)
         self.classPred = nn.Conv2d(ocr_mid_channels, num_class, kernel_size=1, stride=1, padding=0, bias=True)
+
+    def init_weights(self, weights='', verbose=False):
+        if os.path.isfile(weights):
+            pretrained_dict = torch.load(
+                weights, map_location={'cuda:0': 'cpu'})
+            logger.info('=> OCR: loading pretrained model {}'.format(weights))
+            model_dict = self.state_dict()
+            pretrained_dict = {k.replace('last_layer', 'aux_head').replace(
+                'model.', ''): v for k, v in pretrained_dict.items()}
+            pretrained_dict = {
+                k: v for k, v in pretrained_dict.items() if k in model_dict.keys()}
+            if verbose:
+                for k, _ in pretrained_dict.items():
+                    logger.info('=> loading {} pretrained model {}'.format(k, weights))
+            model_dict.update(pretrained_dict)
+            self.load_state_dict(model_dict)
+        elif weights:
+            raise RuntimeError('No such file {}'.format(weights))
 
     def forward(self, conv_out, seg_size=None):
         feats = conv_out[-1]
@@ -401,15 +432,15 @@ class OCR(nn.Module):
         context = self.ocrGather(feats, out_aux)
         feats = self.ocrBlock(feats, context)
         out = self.classPred(feats)
-        #  out = out_aux
         out_aux_seg = []
+        # out = out_aux
         if self.training:  # is True during inference
             out_aux_seg.append(out_aux)
             out_aux_seg.append(out)
             return out_aux_seg
         else:
             if seg_size and (out.size()[-2] != seg_size[0] or out.size()[-1] != seg_size[1]):
-                out = nn.functional.interpolate(out, size=seg_size, mode='bilinear', align_corners=False)
+                out = nn.functional.interpolate(out, size=seg_size, mode='bilinear', align_corners=self.align_corners)
                 out = nn.functional.softmax(out, dim=1)
             return out
 
@@ -584,7 +615,7 @@ class UPerNet(nn.Module):
         self.fpn_in = nn.ModuleList(self.fpn_in)
 
         self.fpn_out = []
-        for i in range(len(fpn_inplanes) - 1):  # skip the top layer
+        for _ in range(len(fpn_inplanes) - 1):  # skip the top layer
             self.fpn_out.append(nn.Sequential(conv3x3_bn_relu(fpn_dim, fpn_dim, 1)))
         self.fpn_out = nn.ModuleList(self.fpn_out)
 

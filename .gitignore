@@ -3,4 +3,17 @@
 ckpt/
 vis/
 log/
+aux/
 pretrained/
+pretrained_models/
+output/
+plots/
+data/ADEChallengeData2016/
+data/ADEout10k/
+data/map20k/
+data/mapillary_vistas/
+data/new_labels_27/
+data/outside30k/
+
+
+.vscode/settings.json

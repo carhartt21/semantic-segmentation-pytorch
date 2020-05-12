@@ -1,8 +1,9 @@
 DATASET:
   root_dataset: "./data/"
   list_train: "./data/map20kTrain.odgt"
-  list_val: "./data/map20kVal.odgt"
-  num_class: 43
+  list_val: "./data/map20kVal5.odgt"
+  list_stats: "./data/map20kTrain.odgt"
+  num_class: 44
   imgSizes: (300, 400, 500, 600, 700, 800)
   imgMaxSize: 1100
   padding_constant: 32
@@ -13,34 +14,35 @@ DATASET:
 MODEL:
   arch_encoder: "hrnetv2"
   arch_decoder: "ocr"
-#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr/encoder_epoch_50.pth"
-#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr/decoder_epoch_50.pth"
+#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/encoder_epoch_30.pth"
+#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/decoder_epoch_30.pth"
   fc_dim: 720
+  spatial: False
 
 TRAIN:
   batch_size_per_gpu: 1
-  num_epoch: 30
-#  start_epoch: 30 
+  num_epoch: 50
+  start_epoch: 28 
   epoch_iters: 10000
   optim: "SGD"
-  lr_encoder: 0.02
-  lr_decoder: 0.02
+  lr_encoder: 0.01
+  lr_decoder: 0.1
   lr_pow: 0.9
   beta1: 0.9
   weight_decay: 1e-4
   deep_sup_scale: 0.4
   fix_bn: False
-  workers: 32
+  workers: 16
   disp_iter: 50
   seed: 304
   eval: False
 
 VAL:
   visualize: False
-  checkpoint: "epoch_77.pth"
+  checkpoint: "epoch_30.pth"
 
 TEST:
-  checkpoint: "epoch_50.pth"
+  checkpoint: "epoch_25.pth"
   result: "./"
 
 DIR: "weights/map20k-hrnetv2-ocr_2/"

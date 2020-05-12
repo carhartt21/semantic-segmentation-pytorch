@@ -12,7 +12,7 @@ from pathlib import Path
 from utils import colorEncode, find_recursive
 
 def remap_image_mat(img):
-    """Maps an image to a grayscale image according to the maps and saves the result.
+    """Maps an image to a grayscale image according to the specified map and saves the result.
 
     Parameters
     ----------
@@ -25,12 +25,11 @@ def remap_image_mat(img):
     if args.dataset == 'mapillary':
         img_data = np.delete(img_data, 3, 2)
         unique_values = np.unique(img_data.reshape(-1, 3), axis=0)
-    if args.dataset == 'ADE20k':
-        img_data = img_data[:, :, 0] * 256 / 10 + img_data[:, :, 1]
+    elif args.dataset == 'ADE20k':
         unique_values = np.unique(img_data.reshape(-1, 1), axis=0)
-    elif args.dataset == 'PASCAL':
-        img_data = np.delete(img_data, 3, 2)
-        unique_values = np.unique(img_data.reshape(-1, 3), axis=0)
+        # ignore label if it doesn't contain sky
+        # if 3 not in unique_values: 
+        #     return
     gray_image = np.zeros((img_data.shape[0], img_data.shape[1]), dtype='uint8')
     img_name = img.split('/')[-1]
     # Check if file exists already in the output path
@@ -43,11 +42,8 @@ def remap_image_mat(img):
                 gray_image += ((img_data == val).all(axis=2) * mapNames[str(old_class)]).astype(np.uint8)
             except ValueError:
                 print('Exception: class {} not found'.format(val))
-        elif args.dataset == 'ADE':
+        elif args.dataset == 'ADE20k':
             gray_image += ((img_data == val) * mapNames[str(int(val))]).astype(np.uint8)
-        elif args.dataset == 'ADE20K':
-            gray_image += ((img_data == val) * mapNames[str(int(val))]).astype(np.uint8)
-
     imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), gray_image)
 
 
@@ -113,7 +109,7 @@ if __name__ == '__main__':
     # Generate image list
     if os.path.isdir(args.input):
         print(args.input)
-        imgs = find_recursive(args.input, ext='.mat')
+        imgs = find_recursive(args.input, ext='.png')
     else:
         imgs = [args.input]
     assert len(imgs), "Exception: imgs should be a path to image (.jpg) or directory."
