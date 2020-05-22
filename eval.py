@@ -22,9 +22,9 @@ from tqdm import tqdm
 def visualize_result(data, pred, dir_result):
     colors = []
     with open(cfg.DATASET.classInfo) as f:
-        clsInfo = json.load(f)
-    for c in clsInfo:
-        colors.append(clsInfo[c]['color'])
+        cls_info = json.load(f)
+    for c in cls_info:
+        colors.append(cls_info[c]['color'])
     (img, seg, info) = data
     # segmentation
     seg_color = colorEncode(seg, colors)
@@ -175,7 +175,6 @@ if __name__ == '__main__':
 
     cfg.merge_from_file(args.cfg)
     cfg.merge_from_list(args.opts)
-    # cfg.freeze()
 
     logger = setup_logger(distributed_rank=0)   # TODO
     logger.info("Loaded configuration file {}".format(args.cfg))
@@ -192,4 +191,5 @@ if __name__ == '__main__':
     if not os.path.isdir(os.path.join(cfg.DIR, "result")):
         os.makedirs(os.path.join(cfg.DIR, "result"))
 
+    cfg.freeze()
     main(cfg, args.gpu)

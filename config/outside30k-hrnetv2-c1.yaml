@@ -1,21 +1,21 @@
 DATASET:
   root_dataset: "./data/"
   list_train: "./data/outside30k_train.odgt"
-  list_val: "./data/outside30k_val50.odgt"
+  list_val: "./data/outside30k_val.odgt"
   list_stats: "./data/outside30k_val.odgt"
   num_class: 27
   imgSizes: (300, 400, 500, 600, 700, 800)
   imgMaxSize: 1100
   padding_constant: 32
-  segm_downsampling_rate: 1
+  segm_downsampling_rate: 4
   random_flip: True
-  random_crop: True
+  random_crop: False
   classInfo: "./data/outside30k.json"
 
 MODEL:
   arch_encoder: "hrnetv2"
+  arch_decoder: "c1"
 #  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/encoder_epoch_30.pth"
-  arch_decoder: "ocr"
 #  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/decoder_epoch_30.pth"
   fc_dim: 720
   spatial: False
@@ -44,7 +44,7 @@ VAL:
   checkpoint: "epoch_40.pth"
 
 TEST:
-  #checkpoint: "epoch_50.pth"
+  checkpoint: "epoch_50.pth"
   result: "./test_dataset/"
 
 DIR: "weights/outside30k-hrnetv2-c1/"

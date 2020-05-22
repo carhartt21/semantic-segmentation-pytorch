@@ -14,6 +14,6 @@ data/map20k/
 data/mapillary_vistas/
 data/new_labels_27/
 data/outside30k/
-
+weights/
 
 .vscode/settings.json

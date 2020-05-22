@@ -15,11 +15,11 @@ from dataset import TrainDataset, ValDataset
 from models import ModelBuilder, SegmentationModule
 from utils import AverageMeter, parse_devices, setup_logger, CrossEntropy
 from eval import evaluate
-from lib.nn import UserScatteredDataParallel, user_scattered_collate, patch_replication_callback
-
+from lib.nn import UserScatteredDataParallel, user_scattered_collate, patch_replication_callback, async_copy_to
+from lib.utils import as_numpy
 
 # train one epoch
-def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
+def train(segmentation_module, iterator, optimizers, history, epoch, cfg, gpu):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     ave_total_loss = AverageMeter()
@@ -31,6 +31,10 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
     for i in range(cfg.TRAIN.epoch_iters):
         # load a batch of data
         batch_data = next(iterator)
+        batch_data = batch_data[0]
+        batch_data = async_copy_to(batch_data, gpu)
+        seg_label = as_numpy(batch_data['seg_label'])
+        seg_size = (seg_label.shape[1], seg_label.shape[2])
         data_time.update(time.time() - tic)
         segmentation_module.zero_grad()
 
@@ -39,7 +43,7 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
         adjust_learning_rate(optimizers, cur_iter, cfg)
 
         # forward pass
-        loss, acc = segmentation_module(batch_data)
+        loss, acc = segmentation_module(batch_data, seg_size=seg_size)
         loss = loss.mean()
         acc = acc.mean()
 
@@ -58,7 +62,7 @@ def train(segmentation_module, iterator, optimizers, history, epoch, cfg):
 
         # calculate accuracy, and display
         if i % cfg.TRAIN.disp_iter == 0:
-            print('Epoch: [{}][{}/{}], Time: {:.2f}, Data: {:.2f}, '
+            print('Epoch: [{}][{}/{}], Batch Time: {:.2f} s, Data Time: {:.4f} s, '
                   'lr_encoder: {:.6f}, lr_decoder: {:.6f}, '
                   'Accuracy: {:4.2f}, Loss: {:.6f}, '
                   'Last score: {:.2f}, Best score: {:.2f}'
@@ -127,7 +131,7 @@ def create_optimizers(nets, cfg):
     optimizer_decoder = torch.optim.SGD(
         group_weight(net_decoder),
         lr=cfg.TRAIN.lr_decoder,
-        momentum=cfg.TRAIN.beta1, 
+        momentum=cfg.TRAIN.beta1,
         weight_decay=cfg.TRAIN.weight_decay)
     if cfg.TRAIN.optim_data:
         logger.info('=> Loading optimizer data')
@@ -162,6 +166,7 @@ def main(cfg, gpus):
         fc_dim=cfg.MODEL.fc_dim,
         num_class=cfg.DATASET.num_class,
         weights=cfg.MODEL.weights_decoder,
+        align_corners=cfg.MODEL.align_corners,
         use_gt=cfg.TRAIN.ocr_use_gt)
 
     if cfg.MODEL.arch_decoder == 'ocr':
@@ -217,6 +222,9 @@ def main(cfg, gpus):
         segmentation_module = UserScatteredDataParallel(segmentation_module, device_ids=gpus)
         # For sync bn
         patch_replication_callback(segmentation_module)
+    else:
+        gpus = gpus[0]
+        torch.cuda.set_device(gpus)
     segmentation_module.cuda()
 
     # Set up optimizers
@@ -226,7 +234,7 @@ def main(cfg, gpus):
     # Main loop
     history = {'train': {'epoch': [], 'loss': [], 'acc': [], 'last_score': 0, 'best_score': cfg.TRAIN.best_score}}
     for epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch):
-        train(segmentation_module, iterator_train, optimizers, history, epoch + 1, cfg)
+        train(segmentation_module, iterator_train, optimizers, history, epoch + 1, cfg, gpus)
         # calculate segmentation score
         if cfg.TRAIN.eval and epoch in range(cfg.TRAIN.start_epoch, cfg.TRAIN.num_epoch, step=cfg.TRAIN.eval_step):
             iou, acc = evaluate(segmentation_module, iterator_val, cfg, gpus)

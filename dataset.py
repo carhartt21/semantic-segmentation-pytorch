@@ -141,6 +141,24 @@ class TrainDataset(BaseDataset):
                 break
         return batch_records
 
+    def rand_scale_crop(self, img, segm, batch_size, mask=None,):
+        # find possible scales
+        scales = np.arange(2, min(img.size / batch_size), 0.5)
+        # choose scale
+        scale = np.random.choice(scales)
+        batch_size = (batch_size * scale).astype(int)
+        # select corners
+        left = np.random.randint(0, img.size[0] - batch_size[0])
+        top = np.random.randint(0, img.size[1] - batch_size[1])
+        # crop image and label
+        img = img.crop((left, top, left + batch_size[0], top + batch_size[1]))
+        segm = segm.crop((left, top, left + batch_size[0], top + batch_size[1]))
+        if mask:
+            mask = mask[top:(top + batch_size[0]), left:(left + batch_size[1])]
+            return img, segm, mask
+        else:
+            return img, segm
+
     def __getitem__(self, index):
         # NOTE: random shuffle for the first time. shuffle in __init__ is useless
         if not self.if_shuffled:
@@ -184,7 +202,7 @@ class TrainDataset(BaseDataset):
 
         for i in range(self.batch_per_gpu):
             this_record = batch_records[i]
-
+            batch_size = np.array([batch_widths[i], batch_heights[i]])
             # load image and label
             image_path = os.path.join(self.root_dataset, this_record['fpath_img'])
             segm_path = os.path.join(self.root_dataset, this_record['fpath_segm'])
@@ -203,16 +221,16 @@ class TrainDataset(BaseDataset):
                 assert(img.size[0] == mask.shape[1])
                 assert(img.size[1] == mask.shape[0])
             # random_crop
-            if (self.rand_crop and max(img.size) > max(batch_heights[i], batch_widths[i]) * 3
+            if (self.rand_crop and max(img.size) > max(batch_size) * 2 
                     and np.random.choice([0, 1], p=[0.7, 0.3])):
-                top = np.random.randint(0, img.size[1] - batch_heights[i])
-                left = np.random.randint(0, img.size[0] - batch_widths[i])
-                img = img.crop((left, top, left + batch_widths[i], top + batch_heights[i]))
-                segm = segm.crop((left, top, left + batch_widths[i], top + batch_heights[i]))
+                # print('random crop')
                 if self.spatial:
-                    mask = mask[top:(top + batch_heights[i]), left:(left + batch_widths[i])]
+                    img, segm, mask = self.rand_scale_crop(img, segm, batch_size, mask)
+                else:
+                    img, segm = self.rand_scale_crop(img, segm, batch_size)
             # random_flip
             if self.rand_flip and np.random.choice([0, 1], p=[0.7, 0.3]):
+                # print('random flip')
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 segm = segm.transpose(Image.FLIP_LEFT_RIGHT)
                 if self.spatial:

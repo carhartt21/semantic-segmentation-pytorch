@@ -58,7 +58,7 @@ _C.TRAIN = CN()
 _C.TRAIN.batch_size_per_gpu = 2
 # epochs to train for
 _C.TRAIN.num_epoch = 20
-# epoch to start training. useful if continue from a checkpoint
+# epoch to start training. useful if continuing from checkpoint
 _C.TRAIN.start_epoch = 0
 # iterations of each epoch (irrelevant to batch size)
 _C.TRAIN.epoch_iters = 5000

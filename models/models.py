@@ -42,11 +42,11 @@ class SegmentationModule(SegmentationModuleBase):
                 feed_dict['seg_label'] = feed_dict['seg_label'].cuda()
             else:
                 raise RuntimeError('Cannot convert torch.Floattensor into torch.cuda.FloatTensor')
-        if seg_size is None:
+        if self.training:
             if self.deep_sup_scale is not None:  # use deep supervision technique
-                (pred, pred_deepsup) = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True))
+                (pred, pred_deepsup) = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True), seg_size=seg_size)
             else:
-                pred = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True))
+                pred = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True), seg_size=seg_size)
             loss = self.crit(pred, feed_dict['seg_label'])
             if self.deep_sup_scale is not None:
                 loss_deepsup = self.crit(pred_deepsup, feed_dict['seg_label'])
@@ -433,8 +433,14 @@ class OCR(nn.Module):
         feats = self.ocrBlock(feats, context)
         out = self.classPred(feats)
         out_aux_seg = []
-        # out = out_aux
+        out = out_aux
         if self.training:  # is True during inference
+            if seg_size and (out.size()[-2] != seg_size[0] or out.size()[-1] != seg_size[1]):
+                out = nn.functional.interpolate(out, size=seg_size, mode='bilinear', align_corners=self.align_corners)
+                out = nn.functional.softmax(out, dim=1)
+                out_aux = nn.functional.interpolate(out, size=seg_size, mode='bilinear',
+                    align_corners=self.align_corners)
+                out_aux = nn.functional.softmax(out, dim=1)
             out_aux_seg.append(out_aux)
             out_aux_seg.append(out)
             return out_aux_seg
@@ -460,14 +466,12 @@ class C1(nn.Module):
         conv5 = conv_out[-1]
         x = self.cbr(conv5)
         x = self.conv_last(x)
-        print(x.shape, x[:, :, 1, 1])
         if self.use_softmax:  # is True during inference
             x = nn.functional.interpolate(
                 x, size=seg_size, mode='bilinear', align_corners=False)
             x = nn.functional.softmax(x, dim=1)
         else:
             x = nn.functional.log_softmax(x, dim=1)
-        print(x.shape, x[:, :, 1, 1])
         return x
 
 
