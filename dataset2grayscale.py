@@ -27,6 +27,8 @@ def remap_image_mat(img):
         unique_values = np.unique(img_data.reshape(-1, 3), axis=0)
     elif args.dataset == 'ADE20k':
         unique_values = np.unique(img_data.reshape(-1, 1), axis=0)
+    elif args.dataset == 'City':
+        unique_values = np.unique(img_data.reshape(-1, 1), axis=0)
         # ignore label if it doesn't contain sky
         # if 3 not in unique_values: 
         #     return
@@ -44,6 +46,8 @@ def remap_image_mat(img):
                 print('Exception: class {} not found'.format(val))
         elif args.dataset == 'ADE20k':
             gray_image += ((img_data == val) * mapNames[str(int(val))]).astype(np.uint8)
+        elif args.dataset == 'City':
+            gray_image += ((img_data == val) * mapNames[str(int(val))]).astype(np.uint8)            
     imageio.imwrite('{}/{}'.format(args.output, img.split('/')[-1]), gray_image)
 
 
@@ -94,14 +98,16 @@ if __name__ == '__main__':
             mapColors = list(json.load(mfile).values())
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
-    elif args.dataset == 'ADE':
-        nameMappingFile = Path('data/ADEMap.json')
+    elif args.dataset == 'City':
+        nameMappingFile = Path('data/CityscapesMap24.json')
+        with open(nameMappingFile) as mfile:
+            mapNames = json.load(mfile)
     elif args.dataset == 'PASCAL':
         nameMappingFile = Path('data/PASCALMap.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     elif args.dataset == 'ADE20k':
-        nameMappingFile = Path('data/ADEMap27.json')
+        nameMappingFile = Path('data/ADEMap24.json')
         with open(nameMappingFile) as mfile:
             mapNames = json.load(mfile)
     else:

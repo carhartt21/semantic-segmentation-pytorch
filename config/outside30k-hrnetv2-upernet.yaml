@@ -13,11 +13,11 @@ DATASET:
   classInfo: "./data/outside30k.json"
 
 MODEL:
-  arch_encoder: "resnet50"
+  arch_encoder: "hrnetv2"
   arch_decoder: "upernet"
-  fc_dim: 2048
-#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/encoder_epoch_30.pth"
-#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/decoder_epoch_30.pth"
+  fc_dim: 720
+  # weights_encoder: "weights/outside30k-hrnetv2-ocr_test/encoder_epoch_50.pth"
+  # weights_encoder: "weights/outside30k-resnet50-upernet/decoder_epoch_69.pth"
   spatial: False
 
 TRAIN:

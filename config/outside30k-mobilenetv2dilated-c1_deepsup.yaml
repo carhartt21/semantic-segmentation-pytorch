@@ -13,18 +13,15 @@ DATASET:
   classInfo: "./data/outside15k.json"
 
 MODEL:
-  arch_encoder: "hrnetv2"
-  arch_decoder: "c1"
-#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/encoder_epoch_30.pth"
-#  weights_encoder: "./ckpt/ade20k-hrnetv2-ocr_2/decoder_epoch_30.pth"
-  fc_dim: 720
-  spatial: False
+  arch_encoder: "mobilenetv2dilated"
+  arch_decoder: "c1_deepsup"
+  fc_dim: 320
 
 TRAIN:
-  batch_size_per_gpu: 1
-  start_epoch: 30
-  num_epoch: 60
-  epoch_iters: 10000
+  batch_size_per_gpu: 4
+  num_epoch: 40
+  start_epoch: 20
+  epoch_iters: 5000
   optim: "SGD"
   lr_encoder: 0.02
   lr_decoder: 0.02
@@ -33,18 +30,16 @@ TRAIN:
   weight_decay: 1e-4
   deep_sup_scale: 0.4
   fix_bn: False
-  workers: 1
-  disp_iter: 50
+  workers: 16
+  disp_iter: 20
   seed: 304
-  eval: False
-  ocr_use_gt: True
 
 VAL:
   visualize: False
-  checkpoint: "epoch_40.pth"
+  checkpoint: "epoch_20.pth"
 
 TEST:
-  checkpoint: "epoch_50.pth"
-  result: "./test_dataset/"
+  checkpoint: "epoch_20.pth"
+  result: "./"
 
-DIR: "weights/outside30k-hrnetv2-c1/"
+DIR: "ckpt/outside30k-mobilenetv2dilated-c1_deepsup"

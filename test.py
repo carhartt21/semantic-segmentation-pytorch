@@ -119,7 +119,7 @@ def main(cfg, gpu):
     segmentation_module.cuda()
 
     dump_input = torch.rand((1, 3, 1920, 1080))
-    with open('dump_model_3.txt', 'w') as file:
+    with open('dump_model_resnet_ppm.txt', 'w') as file:
         file.write(get_model_summary(segmentation_module.cuda(), dump_input.cuda(), verbose=True))
 
     # Main loop

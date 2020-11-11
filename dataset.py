@@ -218,12 +218,11 @@ class TrainDataset(BaseDataset):
             # creating spatial mask
             if self.spatial:
                 mask = create_spatial_mask(img.size, (3, 1))
-                assert(img.size[0] == mask.shape[1])
-                assert(img.size[1] == mask.shape[0])
+                # assert(img.size[0] == mask.shape[1])
+                # assert(img.size[1] == mask.shape[0])
             # random_crop
             if (self.rand_crop and max(img.size) > max(batch_size) * 2 
                     and np.random.choice([0, 1], p=[0.7, 0.3])):
-                # print('random crop')
                 if self.spatial:
                     img, segm, mask = self.rand_scale_crop(img, segm, batch_size, mask)
                 else:
@@ -316,8 +315,8 @@ class ValDataset(BaseDataset):
             # resize spatial mask
             if self.spatial:
                 mask = create_spatial_mask((target_width, target_height))
-                assert(img_resized.size[0] == mask.shape[1])
-                assert(img_resized.size[1] == mask.shape[0])
+                # assert(img_resized.size[0] == mask.shape[1])
+                # assert(img_resized.size[1] == mask.shape[0])
                 # image transform, to torch float tensor 4xHxW
                 img_resized = self.img_transform_v2(img_resized, mask)
             else:
@@ -369,8 +368,8 @@ class TestDataset(BaseDataset):
             img_resized = imresize(img, (target_width, target_height), interp='bilinear')
             if self.spatial:
                 mask = create_spatial_mask((target_width, target_height))
-                assert(img_resized.size[0] == mask.shape[1])
-                assert(img_resized.size[1] == mask.shape[0])
+                # assert(img_resized.size[0] == mask.shape[1])
+                # assert(img_resized.size[1] == mask.shape[0])
                 # image transform, to torch float tensor 4xHxW
                 img_resized = self.img_transform_v2(img_resized, mask)
             else:

@@ -47,4 +47,4 @@ TEST:
   #checkpoint: "epoch_50.pth"
   result: "./test_dataset/"
 
-DIR: "weights/outside30k-hrnetv2-c1/"
+DIR: "weights/outside30k-hrnetv2-ocr_test/"

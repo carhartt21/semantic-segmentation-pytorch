@@ -63,7 +63,7 @@ def get_image_size(file_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Creates a formattet list of input images and segmentations"
+        description="Creates a formatet list of input images and segmentations"
     )
     parser.add_argument(
         "--imgpath",
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--probs",
-        default=[0.1,0.9],
+        default=[0.15, 0.85],
         type=list,
         help="Switch to create train validation split",
         required=False
@@ -121,6 +121,7 @@ if __name__ == '__main__':
             imgSize = get_image_size(img)
             seg = img.replace('images', 'labels')
             seg = seg.replace('.jpg', '.png')
+            seg = seg.replace('leftImg8bit', 'gtFine_labelIds')
             if os.path.isfile(seg):
                 if choice([0, 1], p=args.probs):
                     train_list.append({'fpath_img': img.replace('data/',''), 'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})
@@ -128,22 +129,24 @@ if __name__ == '__main__':
                     val_list.append({'fpath_img': img.replace('data/',''), 'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})                    
             else:
                 print('Exception: could not find segmentation file {}'.format(seg))
-        with open(args.outfile+'_train.odgt', 'w') as outfile:
+        with open(args.outfile + '_train.odgt', 'w') as outfile:
             json.dump(train_list, outfile, indent=1, separators=(',', ':'))
-        with open(args.outfile+'_val.odgt', 'w') as outfile:
+        with open(args.outfile + '_val.odgt', 'w') as outfile:
             json.dump(val_list, outfile, indent=1, separators=(',', ':'))
         print('----Finished----')
-        print('wrote {} files to file {}'.format(len(train_list), args.outfile+'_train.odgt'))
-        print('wrote {} files to file {}'.format(len(val_list), args.outfile+'_val.odgt'))
+        print('wrote {} files to file {}'.format(len(train_list), args.outfile + '_train.odgt'))
+        print('wrote {} files to file {}'.format(len(val_list), args.outfile + '_val.odgt'))
 
-    else:    
+    else:
         list = []
         for img in imgs:
             imgSize = get_image_size(img)
             seg = img.replace('images', 'labels')
             seg = seg.replace('.jpg', '.png')
+            seg = seg.replace('leftImg8bit', 'gtFine_labelIds')
             if os.path.isfile(seg):
-                list.append({'fpath_img': img.replace('data/',''), 'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})
+                list.append({'fpath_img': img.replace('data/',''), 
+                            'fpath_segm': seg.replace('data/',''), 'width': imgSize[0], 'height': imgSize[1]})
             else:
                 print('Exception: could not find segmentation file {}'.format(seg))
         with open(args.outfile+'.odgt', 'w') as outfile:
