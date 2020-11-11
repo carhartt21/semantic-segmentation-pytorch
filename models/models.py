@@ -84,7 +84,7 @@ class ModelBuilder:
             orig_resnet = resnet.__dict__['resnet18'](pretrained=pretrained)
             net_encoder = ResnetDilated(orig_resnet, dilate_scale=8)
         elif arch == 'resnet50':
-            orig_resnet = resnet.__dict__['resnet50'](pretrained=pretrained)
+            orig_resnet = resnet.__dict__['resnet50'](pretrained=False)
             net_encoder = Resnet(orig_resnet)
         elif arch == 'resnet50dilated':
             orig_resnet = resnet.__dict__['resnet50'](pretrained=pretrained)
@@ -587,9 +587,9 @@ class PPMDeepsup(nn.Module):
 
 # upernet
 class UPerNet(nn.Module):
-    def __init__(self, num_class=150, fc_dim=4096,
+    def __init__(self, num_class=150, fc_dim=2048,
                  use_softmax=False, pool_scales=(1, 2, 3, 6),
-                 fpn_inplanes=(256, 512, 1024, 2048), fpn_dim=256):
+                 fpn_inplanes=(256, 512, 1024, 2048), fpn_dim=512):
         super(UPerNet, self).__init__()
         self.use_softmax = use_softmax
 
