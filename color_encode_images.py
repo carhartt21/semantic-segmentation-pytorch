@@ -38,7 +38,7 @@ if __name__ == '__main__':
     else:
         print("Exception: imgpath {} is not a directory".format(args.input))
     colors = []
-    with open('data/outside30k.json') as f:
+    with open('data/outside15k.json') as f:
         cls_info = json.load(f)
     for c in cls_info:
         colors.append(cls_info[c]['color'])
